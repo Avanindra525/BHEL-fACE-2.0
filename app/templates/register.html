@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Register | FaceAuth Enterprise{% endblock %}
+{% block body_class %}auth-page{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+      <div class="auth-card p-4 p-lg-5">
+        <div class="text-center mb-4">
+          <a href="/" class="text-decoration-none">
+            <div class="avatar-badge mx-auto mb-3"><i class="fa-solid fa-user-plus"></i></div>
+          </a>
+          <h2 class="fw-bold">Create your account</h2>
+          <p class="text-muted">Join your enterprise and start using facial authentication.</p>
+        </div>
+
+        <form id="registerForm" data-validate-form>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Full name</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+                <input type="text" class="form-control" id="regFullName" name="regFullName" data-validate="required|min:2|max:200" placeholder="John Doe" autocomplete="name" />
+              </div>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Username</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-at"></i></span>
+                <input type="text" class="form-control" id="regUsername" name="regUsername" data-validate="required|username|min:3|max:100" placeholder="johndoe" autocomplete="username" />
+              </div>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email address</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                <input type="email" class="form-control" id="regEmail" name="regEmail" data-validate="required|email" placeholder="john@company.com" autocomplete="email" />
+              </div>
+              <div class="invalid-feedback"></div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Staff number <small class="text-muted">(optional)</small></label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-id-badge"></i></span>
+                <input type="text" class="form-control" id="regStaffNumber" name="regStaffNumber" placeholder="EMP-001" />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Password</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                <input type="password" class="form-control" id="regPassword" data-validate="required|password" placeholder="Create a strong password" autocomplete="new-password" />
+                <button class="btn btn-outline-secondary" type="button" onclick="toggleRegPassword()">
+                  <i class="fa-solid fa-eye"></i>
+                </button>
+              </div>
+              <div class="invalid-feedback"></div>
+              <small class="form-text">At least 8 characters with uppercase, lowercase, and a number.</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Confirm password</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                <input type="password" class="form-control" id="regPasswordConfirm" data-validate="required|match:regPassword:password" placeholder="Confirm your password" autocomplete="new-password" />
+              </div>
+              <div class="invalid-feedback"></div>
+            </div>
+          </div>
+
+          <div class="form-check mt-3 mb-3">
+            <input class="form-check-input" type="checkbox" id="agreeTerms" data-validate="required" />
+            <label class="form-check-label small" for="agreeTerms">
+              I agree to the <a href="#" class="text-decoration-none">Terms of Service</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>
+            </label>
+            <div class="invalid-feedback">You must agree to continue</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100 py-2" id="registerBtn">
+            <i class="fa-solid fa-user-plus me-2"></i>Create Account
+          </button>
+        </form>
+
+        <div class="text-center mt-4">
+          <p class="text-muted small mb-0">
+            Already have an account? <a href="/login" class="text-decoration-none fw-semibold">Sign in</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function toggleRegPassword() {
+  const pwd = document.getElementById('regPassword');
+  const icon = document.querySelector('#regPassword + button i');
+  if (pwd.type === 'password') {
+    pwd.type = 'text';
+    icon.className = 'fa-solid fa-eye-slash';
+  } else {
+    pwd.type = 'password';
+    icon.className = 'fa-solid fa-eye';
+  }
+}
+
+// Password strength indicator
+document.getElementById('regPassword')?.addEventListener('input', function() {
+  const val = this.value;
+  let strength = 0;
+  if (val.length >= 8) strength++;
+  if (/[A-Z]/.test(val)) strength++;
+  if (/[a-z]/.test(val)) strength++;
+  if (/[0-9]/.test(val)) strength++;
+  if (/[^A-Za-z0-9]/.test(val)) strength++;
+
+  const feedback = this.parentElement.parentElement.querySelector('.form-text');
+  if (strength === 0) { feedback.textContent = 'Enter a password'; feedback.className = 'form-text text-muted'; }
+  else if (strength <= 2) { feedback.textContent = 'Weak password'; feedback.className = 'form-text text-danger'; }
+  else if (strength <= 3) { feedback.textContent = 'Moderate password'; feedback.className = 'form-text text-warning'; }
+  else if (strength <= 4) { feedback.textContent = 'Strong password'; feedback.className = 'form-text text-success'; }
+  else { feedback.textContent = 'Very strong password'; feedback.className = 'form-text text-success'; }
+});
+
+// Register form submission
+document.getElementById('registerForm')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  if (!Validator.validateForm(this)) return;
+
+  const btn = document.getElementById('registerBtn');
+  const icon = btn.querySelector('i');
+  btn.disabled = true;
+  icon.className = 'fa-solid fa-spinner spinner me-2';
+
+  const payload = {
+    username: document.getElementById('regUsername').value.trim(),
+    email: document.getElementById('regEmail').value.trim(),
+    full_name: document.getElementById('regFullName').value.trim(),
+    password: document.getElementById('regPassword').value,
+    password_confirmation: document.getElementById('regPasswordConfirm').value,
+    staff_number: document.getElementById('regStaffNumber').value.trim() || null,
+    profile_completed: false,
+  };
+
+  try {
+    await Auth.register(payload);
+    Toast.success('Account created successfully!');
+    setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 1000);
+  } catch (err) {
+    if (err.data && err.data.detail) {
+      // Check for multiple errors
+      if (Array.isArray(err.data.detail)) {
+        err.data.detail.forEach(d => Toast.error(d.msg || d.message));
+      } else {
+        Toast.error(err.data.detail);
+      }
+    } else {
+      Toast.error(err.message || 'Registration failed. Please try again.');
+    }
+  } finally {
+    btn.disabled = false;
+    icon.className = 'fa-solid fa-user-plus me-2';
+  }
+});
+</script>
+{% endblock %}
+

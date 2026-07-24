@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% block title %}Dashboard | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<!-- Sidebar Toggle (mobile) -->
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="employeeSidebar">
+    <div class="sidebar-header">
+      <a href="/dashboard" class="text-white text-decoration-none">
+        <h5 class="fw-bold mb-0"><i class="fa-solid fa-fingerprint me-2"></i>FaceAuth</h5>
+      </a>
+      <small class="text-white-50">Employee Workspace</small>
+    </div>
+    <nav>
+      <div class="nav-section-title">Main</div>
+      <a href="/dashboard" class="nav-link active"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+      <a href="/profile" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+      <a href="/face-registration" class="nav-link"><i class="fa-solid fa-camera"></i> Face Registration</a>
+      <a href="/login-history" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Login History</a>
+      <a href="/settings" class="nav-link"><i class="fa-solid fa-gear"></i> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-link" onclick="Auth.logout(); return false;">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="content-area">
+    <nav class="topbar">
+      <div>
+        <h5 class="fw-bold mb-0" id="dashboardGreeting">Employee Dashboard</h5>
+        <small class="text-muted" id="dashboardRole">Loading...</small>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span class="text-muted small d-none d-md-inline" id="dashboardLastLogin"></span>
+        <a href="/profile" class="btn btn-outline-primary btn-sm rounded-pill">
+          <i class="fa-solid fa-user me-1"></i> Profile
+        </a>
+      </div>
+    </nav>
+
+    <div class="page-content">
+      <!-- Loading State -->
+      <div id="dashboardLoading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+      </div>
+
+      <!-- Dashboard Content -->
+      <div id="dashboardContent" style="display:none;">
+        <!-- Stats Row -->
+        <div class="row g-4 mb-4">
+          <div class="col-md-3 col-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                <i class="fa-solid fa-right-to-bracket"></i>
+              </div>
+              <div class="stat-label">Last Login</div>
+              <div class="stat-value" id="statLastLogin">--</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-success bg-opacity-10 text-success">
+                <i class="fa-solid fa-face-smile"></i>
+              </div>
+              <div class="stat-label">Face Status</div>
+              <div class="stat-value" id="statFaceStatus">--</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+              <div class="stat-label">Profile</div>
+              <div class="stat-value" id="statProfile">--</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-info bg-opacity-10 text-info">
+                <i class="fa-solid fa-building"></i>
+              </div>
+              <div class="stat-label">Department</div>
+              <div class="stat-value" id="statDepartment">--</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <!-- Login Activity Chart -->
+          <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-3 px-4">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-line text-primary me-2"></i>Login Activity</h6>
+                <span class="badge bg-soft-primary">Last 7 days</span>
+              </div>
+              <div class="card-body px-4 pb-4">
+                <div class="chart-container">
+                  <canvas id="loginChart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-header bg-white border-0 pt-3 px-4">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-bolt text-primary me-2"></i>Quick Actions</h6>
+              </div>
+              <div class="card-body px-4 pb-4">
+                <div class="d-grid gap-2">
+                  <a href="/face-registration" class="btn btn-outline-primary text-start" id="quickActionFace">
+                    <i class="fa-solid fa-camera me-2"></i>Register Face
+                  </a>
+                  <a href="/profile" class="btn btn-outline-primary text-start">
+                    <i class="fa-solid fa-user-pen me-2"></i>Update Profile
+                  </a>
+                  <a href="/settings" class="btn btn-outline-primary text-start">
+                    <i class="fa-solid fa-lock me-2"></i>Security Settings
+                  </a>
+                  <a href="/login-history" class="btn btn-outline-primary text-start">
+                    <i class="fa-solid fa-clock-rotate-left me-2"></i>View History
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Login History -->
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-3 px-4">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>Recent Activity</h6>
+                <a href="/login-history" class="btn btn-sm btn-outline-primary">View All</a>
+              </div>
+              <div class="card-body px-4 pb-4">
+                <div class="table-container">
+                  <table class="table" id="recentActivityTable">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>IP Address</th>
+                      </tr>
+                    </thead>
+                    <tbody id="recentActivityBody">
+                      <tr><td colspan="4" class="text-center text-muted">No recent activity</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+{% block scripts %}
+<script>
+function toggleSidebar() {
+  document.getElementById('employeeSidebar')?.classList.toggle('open');
+  document.querySelector('.sidebar-overlay')?.classList.toggle('show');
+}
+
+async function loadDashboard() {
+  const loading = document.getElementById('dashboardLoading');
+  const content = document.getElementById('dashboardContent');
+
+  try {
+    const summary = await API.get('/dashboard/summary');
+
+    // Set greeting
+    document.getElementById('dashboardGreeting').textContent = `Welcome, ${summary.user || 'Employee'}`;
+    document.getElementById('dashboardRole').textContent = `Role: ${summary.role || 'Employee'}`;
+
+    // Stats
+    const lastLogin = summary.last_login_at ? new Date(summary.last_login_at).toLocaleString() : 'First login';
+    document.getElementById('statLastLogin').textContent = summary.last_login_at ? new Date(summary.last_login_at).toLocaleDateString() : 'Today';
+    document.getElementById('dashboardLastLogin').textContent = `Last login: ${lastLogin}`;
+
+    const faceRegistered = summary.face_registered;
+    document.getElementById('statFaceStatus').textContent = faceRegistered ? 'Registered' : 'Not Set';
+    document.getElementById('statFaceStatus').className = `stat-value ${faceRegistered ? 'text-success' : 'text-warning'}`;
+
+    const profileCompleted = summary.profile_completed !== false;
+    document.getElementById('statProfile').textContent = profileCompleted ? 'Complete' : 'Incomplete';
+    document.getElementById('statProfile').className = `stat-value ${profileCompleted ? 'text-success' : 'text-warning'}`;
+
+    document.getElementById('statDepartment').textContent = summary.department || 'Unassigned';
+
+    // Quick action face button
+    if (faceRegistered) {
+      const btn = document.getElementById('quickActionFace');
+      btn.innerHTML = '<i class="fa-solid fa-camera me-2"></i>Update Face';
+      btn.className = 'btn btn-outline-success text-start';
+    }
+
+    // Load login history
+    try {
+      const history = await API.get('/login-history');
+      const tbody = document.getElementById('recentActivityBody');
+      if (history && history.length > 0) {
+        const recent = history.slice(0, 5);
+        tbody.innerHTML = recent.map(h => `
+          <tr>
+            <td>${new Date(h.login_time || h.created_at).toLocaleString()}</td>
+            <td><span class="badge bg-soft-info">${h.login_method || 'password'}</span></td>
+            <td><span class="badge ${h.success || h.success === 'Y' ? 'bg-soft-success' : 'bg-soft-danger'}">${h.success || h.success === 'Y' ? 'Success' : 'Failed'}</span></td>
+            <td class="text-muted">${h.ip_address || '--'}</td>
+          </tr>
+        `).join('');
+      } else {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">No recent activity</td></tr>';
+      }
+    } catch (e) {
+      // history unavailable
+    }
+
+    // Initialize Chart
+    const ctx = document.getElementById('loginChart');
+    if (ctx && typeof Chart !== 'undefined') {
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Logins',
+            data: [3, 5, 2, 8, 6, 4, 1],
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: '#2563eb',
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    loading.style.display = 'none';
+    content.style.display = 'block';
+
+  } catch (err) {
+    loading.innerHTML = `
+      <div class="text-center">
+        <i class="fa-solid fa-triangle-exclamation text-warning fa-3x mb-3"></i>
+        <h5>Failed to load dashboard</h5>
+        <p class="text-muted">${err.message}</p>
+        <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+      </div>
+    `;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{% endblock %}
+{% endblock %}
+

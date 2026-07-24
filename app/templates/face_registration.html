@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}Face Registration | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="faceSidebar">
+    <div class="sidebar-header">
+      <a href="/dashboard" class="text-white text-decoration-none">
+        <h5 class="fw-bold mb-0"><i class="fa-solid fa-fingerprint me-2"></i>FaceAuth</h5>
+      </a>
+      <small class="text-white-50">Employee Workspace</small>
+    </div>
+    <nav>
+      <div class="nav-section-title">Main</div>
+      <a href="/dashboard" class="nav-link"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+      <a href="/profile" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+      <a href="/face-registration" class="nav-link active"><i class="fa-solid fa-camera"></i> Face Registration</a>
+      <a href="/login-history" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Login History</a>
+      <a href="/settings" class="nav-link"><i class="fa-solid fa-gear"></i> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-link" onclick="Auth.logout(); return false;">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div>
+        <h5 class="fw-bold mb-0">Face Registration</h5>
+        <small class="text-muted">Register your biometric profile for secure face login</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <span id="regStatus" class="badge bg-soft-warning px-3 py-2">Not Registered</span>
+      </div>
+    </nav>
+
+    <div class="page-content">
+      <div class="row g-4">
+        <!-- Instructions -->
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm h-100">
+            <div class="card-body p-4">
+              <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-info text-primary me-2"></i>Registration Guide</h5>
+              <ol class="list-group list-group-numbered list-group-flush">
+                <li class="list-group-item px-0 border-0">
+                  <strong>Position your face</strong><br />
+                  <small class="text-muted">Ensure good lighting and face the camera directly.</small>
+                </li>
+                <li class="list-group-item px-0 border-0">
+                  <strong>Front pose</strong><br />
+                  <small class="text-muted">Look straight ahead at the camera.</small>
+                </li>
+                <li class="list-group-item px-0 border-0">
+                  <strong>Left pose</strong><br />
+                  <small class="text-muted">Slowly turn your head to the left.</small>
+                </li>
+                <li class="list-group-item px-0 border-0">
+                  <strong>Right pose</strong><br />
+                  <small class="text-muted">Slowly turn your head to the right.</small>
+                </li>
+                <li class="list-group-item px-0 border-0">
+                  <strong>Up pose</strong><br />
+                  <small class="text-muted">Tilt your head slightly upward.</small>
+                </li>
+              </ol>
+              <div class="alert alert-info small mt-3 mb-0">
+                <i class="fa-solid fa-lightbulb me-1"></i>
+                Ensure your face is well-lit and there are no obstructions.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Camera & Capture Area -->
+        <div class="col-lg-8">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <!-- Pose Progress -->
+              <div class="pose-progress" id="poseProgress">
+                <div class="pose-step active" data-pose="front">
+                  <div class="pose-icon"><i class="fa-solid fa-face-smile"></i></div>
+                  <span class="pose-label">Front</span>
+                </div>
+                <div class="pose-step" data-pose="left">
+                  <div class="pose-icon"><i class="fa-solid fa-face-meh"></i></div>
+                  <span class="pose-label">Left</span>
+                </div>
+                <div class="pose-step" data-pose="right">
+                  <div class="pose-icon"><i class="fa-solid fa-face-meh"></i></div>
+                  <span class="pose-label">Right</span>
+                </div>
+                <div class="pose-step" data-pose="up">
+                  <div class="pose-icon"><i class="fa-solid fa-face-smile"></i></div>
+                  <span class="pose-label">Up</span>
+                </div>
+              </div>
+
+              <!-- Camera -->
+              <div id="cameraContainer" class="camera-container mb-3" style="display:none;">
+                <video id="faceVideo" autoplay playsinline muted></video>
+                <div class="camera-overlay">
+                  <div class="camera-frame" id="faceFrame"></div>
+                </div>
+                <div id="poseLabel" class="camera-pose-label">Front — Look straight ahead</div>
+                <div id="countdownOverlay" class="camera-countdown" style="display:none;">3</div>
+                <div class="quality-indicator" id="qualityIndicators">
+                  <div class="quality-dot good" title="Brightness"></div>
+                  <div class="quality-dot good" title="Blur"></div>
+                  <div class="quality-dot good" title="Face Size"></div>
+                </div>
+              </div>
+
+              <div id="cameraPlaceholder" class="text-center py-5">
+                <i class="fa-solid fa-camera fa-4x text-muted mb-3 d-block"></i>
+                <h5>Camera Preview</h5>
+                <p class="text-muted mb-3">Click the button below to start the face registration process.</p>
+                <button class="btn btn-primary btn-lg" id="startRegistrationBtn">
+                  <i class="fa-solid fa-play me-2"></i>Start Registration
+                </button>
+              </div>
+
+              <!-- Results -->
+              <div id="registrationResult" style="display:none;"></div>
+
+              <!-- Capture Status Log -->
+              <div id="captureLog" class="mt-3" style="display:none;">
+                <h6 class="fw-bold"><i class="fa-solid fa-list-check text-primary me-2"></i>Capture Progress</h6>
+                <ul class="list-group list-group-flush small" id="captureLogList"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+let mediaStream = null;
+let currentPose = 0;
+const poses = ['front', 'left', 'right', 'up'];
+const poseLabels = {
+  front: 'Front — Look straight ahead',
+  left: 'Left — Turn head to the left',
+  right: 'Right — Turn head to the right',
+  up: 'Up — Tilt head upward'
+};
+let captureTimer = null;
+
+function toggleSidebar() {
+  document.getElementById('faceSidebar')?.classList.toggle('open');
+  document.querySelector('.sidebar-overlay')?.classList.toggle('show');
+}
+
+function addLog(message, type = 'info') {
+  const list = document.getElementById('captureLogList');
+  const icons = { success: 'fa-circle-check text-success', error: 'fa-circle-xmark text-danger', info: 'fa-circle-info text-primary' };
+  list.innerHTML += `<li class="list-group-item px-0"><i class="fa-solid ${icons[type] || icons.info} me-2"></i>${message}</li>`;
+}
+
+function updatePoseProgress() {
+  document.querySelectorAll('.pose-step').forEach((step, index) => {
+    step.classList.remove('active', 'completed');
+    if (index < currentPose) step.classList.add('completed');
+    else if (index === currentPose) step.classList.add('active');
+  });
+  document.getElementById('poseLabel').textContent = poseLabels[poses[currentPose]];
+}
+
+async function startCamera() {
+  try {
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480, facingMode: 'user' }
+    });
+    const video = document.getElementById('faceVideo');
+    video.srcObject = mediaStream;
+    await video.play();
+    return true;
+  } catch (err) {
+    Toast.error('Camera access denied. Please grant permission and try again.');
+    return false;
+  }
+}
+
+function stopCamera() {
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(t => t.stop());
+    mediaStream = null;
+  }
+}
+
+function startCountdown(seconds, callback) {
+  const overlay = document.getElementById('countdownOverlay');
+  overlay.style.display = 'block';
+  overlay.textContent = seconds;
+
+  captureTimer = setInterval(() => {
+    seconds--;
+    if (seconds <= 0) {
+      clearInterval(captureTimer);
+      overlay.style.display = 'none';
+      callback();
+    } else {
+      overlay.textContent = seconds;
+    }
+  }, 1000);
+}
+
+async function capturePose() {
+  await startCountdown(3, async () => {
+    const video = document.getElementById('faceVideo');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.9));
+    const formData = new FormData();
+    formData.append('file', blob, `pose_${poses[currentPose]}.jpg`);
+    formData.append('pose', poses[currentPose]);
+
+    try {
+      addLog(`Capturing ${poses[currentPose]} pose...`, 'info');
+      await API.post('/face/register', formData, true);
+      addLog(`${poses[currentPose].charAt(0).toUpperCase() + poses[currentPose].slice(1)} pose captured successfully`, 'success');
+
+      currentPose++;
+      if (currentPose < poses.length) {
+        updatePoseProgress();
+        setTimeout(() => capturePose(), 1500);
+      } else {
+        // All poses captured
+        addLog('All poses captured! Finalizing registration...', 'success');
+        document.getElementById('poseLabel').textContent = 'Registration Complete!';
+        document.getElementById('faceFrame').classList.add('active');
+        document.getElementById('regStatus').textContent = 'Registered';
+        document.getElementById('regStatus').className = 'badge bg-soft-success px-3 py-2';
+        stopCamera();
+        Toast.success('Face registration completed successfully!');
+        document.getElementById('registrationResult').style.display = 'block';
+        document.getElementById('registrationResult').innerHTML = `
+          <div class="alert alert-success text-center">
+            <i class="fa-solid fa-circle-check fa-3x mb-2"></i>
+            <h4 class="fw-bold">Registration Complete!</h4>
+            <p class="mb-0">Your biometric profile has been registered. You can now use face login.</p>
+          </div>`;
+      }
+    } catch (err) {
+      addLog(`Failed to capture ${poses[currentPose]}: ${err.message}`, 'error');
+      Toast.error(`Failed to capture ${poses[currentPose]} pose. Please try again.`);
+    }
+  });
+}
+
+document.getElementById('startRegistrationBtn')?.addEventListener('click', async function() {
+  const btn = this;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner spinner me-2"></i>Starting...';
+
+  const success = await startCamera();
+  if (!success) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-play me-2"></i>Start Registration';
+    return;
+  }
+
+  document.getElementById('cameraPlaceholder').style.display = 'none';
+  document.getElementById('cameraContainer').style.display = 'block';
+  document.getElementById('captureLog').style.display = 'block';
+  document.getElementById('poseLabel').textContent = 'Preparing...';
+
+  addLog('Camera started successfully', 'info');
+  addLog('Starting pose capture sequence...', 'info');
+
+  // Reset pose
+  currentPose = 0;
+  updatePoseProgress();
+
+  // Wait a moment then start capturing
+  setTimeout(() => capturePose(), 2000);
+});
+
+// Stop camera on page unload
+window.addEventListener('beforeunload', () => stopCamera());
+
+// Check current face registration status on load
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const summary = await API.get('/dashboard/summary');
+    if (summary.face_registered) {
+      document.getElementById('regStatus').textContent = 'Registered';
+      document.getElementById('regStatus').className = 'badge bg-soft-success px-3 py-2';
+    }
+  } catch (e) {
+    // not authenticated
+  }
+});
+</script>
+{% endblock %}
+

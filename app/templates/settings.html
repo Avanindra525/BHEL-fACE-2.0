@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Settings | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="settingsSidebar">
+    <div class="sidebar-header">
+      <a href="/dashboard" class="text-white text-decoration-none">
+        <h5 class="fw-bold mb-0"><i class="fa-solid fa-fingerprint me-2"></i>FaceAuth</h5>
+      </a>
+      <small class="text-white-50">Employee Workspace</small>
+    </div>
+    <nav>
+      <div class="nav-section-title">Main</div>
+      <a href="/dashboard" class="nav-link"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+      <a href="/profile" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+      <a href="/face-registration" class="nav-link"><i class="fa-solid fa-camera"></i> Face Registration</a>
+      <a href="/login-history" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Login History</a>
+      <a href="/settings" class="nav-link active"><i class="fa-solid fa-gear"></i> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-link" onclick="Auth.logout(); return false;">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div>
+        <h5 class="fw-bold mb-0">Settings</h5>
+        <small class="text-muted">Manage your preferences</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <a href="/dashboard" class="btn btn-outline-primary btn-sm">
+          <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
+        </a>
+      </div>
+    </nav>
+
+    <div class="page-content">
+      <div class="row g-4">
+        <!-- Security Preferences -->
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-3 px-4">
+              <h6 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved text-primary me-2"></i>Security Preferences</h6>
+            </div>
+            <div class="card-body px-4 pb-4">
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="mfaReminders" checked />
+                <label class="form-check-label" for="mfaReminders">Enable MFA reminders</label>
+                <small class="d-block text-muted">Get notified to enroll in multi-factor authentication.</small>
+              </div>
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="faceReRegistration" />
+                <label class="form-check-label" for="faceReRegistration">Require face re-registration every 90 days</label>
+                <small class="d-block text-muted">Automatically prompt for biometric refresh.</small>
+              </div>
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="loginAlerts" checked />
+                <label class="form-check-label" for="loginAlerts">Login alerts via email</label>
+                <small class="d-block text-muted">Receive email notifications for new sign-ins.</small>
+              </div>
+              <hr />
+              <h6 class="fw-bold mb-2">Session</h6>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="small">Active sessions</span>
+                <button class="btn btn-outline-danger btn-sm" onclick="revokeSessions()">
+                  <i class="fa-solid fa-xmark me-1"></i>Revoke All
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notification Preferences -->
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-3 px-4">
+              <h6 class="fw-bold mb-0"><i class="fa-solid fa-bell text-primary me-2"></i>Notification Preferences</h6>
+            </div>
+            <div class="card-body px-4 pb-4">
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="emailNotifications" checked />
+                <label class="form-check-label" for="emailNotifications">Email notifications</label>
+                <small class="d-block text-muted">Receive system updates via email.</small>
+              </div>
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="browserNotifications" checked />
+                <label class="form-check-label" for="browserNotifications">Browser push notifications</label>
+                <small class="d-block text-muted">Get real-time alerts in your browser.</small>
+              </div>
+              <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="weeklyDigest" />
+                <label class="form-check-label" for="weeklyDigest">Weekly security digest</label>
+                <small class="d-block text-muted">Summary of your account activity each week.</small>
+              </div>
+              <hr />
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold mb-0">Appearance</h6>
+                  <small class="text-muted">Choose your theme</small>
+                </div>
+                <select class="form-select form-select-sm w-auto" id="themeSelect">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="auto">Auto</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Information -->
+        <div class="col-12">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-3 px-4">
+              <h6 class="fw-bold mb-0"><i class="fa-solid fa-circle-info text-primary me-2"></i>Account Information</h6>
+            </div>
+            <div class="card-body px-4 pb-4">
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <small class="text-muted d-block">App Version</small>
+                  <span class="fw-semibold" id="settingsAppVersion">1.0.0</span>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted d-block">Environment</small>
+                  <span class="fw-semibold" id="settingsAppEnv">--</span>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted d-block">Database</small>
+                  <span class="fw-semibold">Oracle 19c</span>
+                </div>
+                <div class="col-md-3">
+                  <small class="text-muted d-block">Face AI Engine</small>
+                  <span class="fw-semibold">SCRFD + ArcFace</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+function toggleSidebar() {
+  document.getElementById('settingsSidebar')?.classList.toggle('open');
+  document.querySelector('.sidebar-overlay')?.classList.toggle('show');
+}
+
+async function loadSettings() {
+  try {
+    const s = await API.get('/settings');
+    document.getElementById('settingsAppVersion').textContent = s.app_version || '1.0.0';
+    document.getElementById('settingsAppEnv').textContent = s.app_env || 'production';
+  } catch (err) {
+    // fallback to defaults
+  }
+}
+
+function revokeSessions() {
+  if (confirm('Revoke all active sessions? You will be logged out.')) {
+    API.del('/auth/sessions').then(() => {
+      Toast.success('All sessions revoked.');
+      Auth.clearSession();
+      setTimeout(() => window.location.href = '/login', 1500);
+    }).catch(err => Toast.error(err.message));
+  }
+}
+
+// Save toggle preferences
+document.querySelectorAll('.form-check-input').forEach(input => {
+  input.addEventListener('change', function() {
+    const key = this.id;
+    const value = this.checked;
+    localStorage.setItem('setting_' + key, value);
+    Toast.success('Preference saved');
+  });
+});
+
+// Restore saved preferences
+document.querySelectorAll('.form-check-input').forEach(input => {
+  const saved = localStorage.getItem('setting_' + input.id);
+  if (saved !== null) input.checked = saved === 'true';
+});
+
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+{% endblock %}
+

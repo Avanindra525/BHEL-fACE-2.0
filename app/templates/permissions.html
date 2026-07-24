@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Permission Management | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="permSidebar">
+    <div class="sidebar-header">
+      <a href="/admin" class="text-white text-decoration-none"><h5 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Admin Console</h5></a>
+    </div>
+    <nav>
+      <div class="nav-section-title">Management</div>
+      <a href="/admin" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+      <a href="/employees" class="nav-link"><i class="fa-solid fa-users"></i> Employees</a>
+      <a href="/departments" class="nav-link"><i class="fa-solid fa-sitemap"></i> Departments</a>
+      <a href="/roles" class="nav-link"><i class="fa-solid fa-user-shield"></i> Roles</a>
+      <a href="/permissions" class="nav-link active"><i class="fa-solid fa-key"></i> Permissions</a>
+      <div class="nav-section-title">Monitoring</div>
+      <a href="/audit-logs" class="nav-link"><i class="fa-solid fa-file-shield"></i> Audit Logs</a>
+      <a href="/statistics" class="nav-link"><i class="fa-solid fa-chart-column"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-footer"><a href="#" class="nav-link" onclick="Auth.logout(); return false;"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a></div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div><h5 class="fw-bold mb-0">Permission Management</h5><small class="text-muted">Define granular permissions for role-based access control</small></div>
+    </nav>
+    <div class="page-content">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-3 px-4">
+          <h6 class="fw-bold mb-0"><i class="fa-solid fa-key text-primary me-2"></i>All Permissions</h6>
+          <button class="btn btn-primary btn-sm" onclick="openAddPermModal()"><i class="fa-solid fa-plus me-1"></i>Add Permission</button>
+        </div>
+        <div class="card-body px-4 pb-4">
+          <div id="permLoading" class="loading-overlay"><div class="loading-spinner"></div></div>
+          <div class="table-container">
+            <table class="table table-hover">
+              <thead><tr><th>Name</th><th>Description</th><th>Status</th><th>Created</th><th class="text-end">Actions</th></tr></thead>
+              <tbody id="permBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add/Edit Permission Modal -->
+<div class="modal fade" id="permModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="permModalTitle"><i class="fa-solid fa-key text-primary me-2"></i>Permission</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editPermId" />
+        <div class="mb-3">
+          <label class="form-label">Permission name</label>
+          <input type="text" class="form-control" id="permName" placeholder="e.g. employee.create" />
+          <small class="form-text">Use dot notation: resource.action</small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" id="permDesc" rows="2" placeholder="What does this permission allow?"></textarea>
+        </div>
+        <div id="permActiveField" style="display:none;">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="permActive"><option value="Y">Active</option><option value="N">Inactive</option></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="savePermBtn" onclick="savePermission()"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSidebar() { document.getElementById('permSidebar')?.classList.toggle('open'); document.querySelector('.sidebar-overlay')?.classList.toggle('show'); }
+
+async function loadPermissions() {
+  const loading = document.getElementById('permLoading');
+  const tbody = document.getElementById('permBody');
+  loading.style.display = 'flex';
+  try {
+    const perms = await API.get('/permissions');
+    if (perms.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No permissions defined.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = perms.map(p => `
+      <tr>
+        <td><span class="fw-semibold"><code>${p.name}</code></span></td>
+        <td class="small text-muted">${p.description || '--'}</td>
+        <td>${(p.is_active === 'Y' || p.is_active === true) ? '<span class="badge bg-soft-success">Active</span>' : '<span class="badge bg-soft-danger">Inactive</span>'}</td>
+        <td class="small text-muted">${p.created_at ? new Date(p.created_at).toLocaleDateString() : '--'}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-primary" onclick="openEditPerm(${p.permission_id})"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deletePermission(${p.permission_id})"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">${err.message}</td></tr>`; }
+  finally { loading.style.display = 'none'; }
+}
+
+function openAddPermModal() {
+  document.getElementById('permModalTitle').textContent = 'Add Permission';
+  document.getElementById('editPermId').value = '';
+  document.getElementById('permName').value = '';
+  document.getElementById('permDesc').value = '';
+  document.getElementById('permActiveField').style.display = 'none';
+  new bootstrap.Modal(document.getElementById('permModal')).show();
+}
+
+async function openEditPerm(id) {
+  try {
+    const perms = await API.get('/permissions');
+    const p = perms.find(x => x.permission_id === id);
+    if (!p) return;
+    document.getElementById('permModalTitle').textContent = 'Edit Permission';
+    document.getElementById('editPermId').value = id;
+    document.getElementById('permName').value = p.name || '';
+    document.getElementById('permDesc').value = p.description || '';
+    document.getElementById('permActive').value = (p.is_active === 'Y' || p.is_active === true) ? 'Y' : 'N';
+    document.getElementById('permActiveField').style.display = 'block';
+    new bootstrap.Modal(document.getElementById('permModal')).show();
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function savePermission() {
+  const id = document.getElementById('editPermId').value;
+  const data = {
+    name: document.getElementById('permName').value.trim(),
+    description: document.getElementById('permDesc').value.trim() || null,
+  };
+  const btn = document.getElementById('savePermBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner spinner me-2"></i>Saving...';
+  try {
+    if (id) {
+      data.is_active = document.getElementById('permActive').value;
+      await API.put(`/permissions/${id}`, data);
+      Toast.success('Permission updated!');
+    } else {
+      await API.post('/permissions', data);
+      Toast.success('Permission created!');
+    }
+    bootstrap.Modal.getInstance(document.getElementById('permModal')).hide();
+    loadPermissions();
+  } catch (err) { Toast.error(err.message); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save'; }
+}
+
+async function deletePermission(id) {
+  if (!confirm('Delete this permission? Roles using it may be affected.')) return;
+  try {
+    await API.del(`/permissions/${id}`);
+    Toast.success('Permission deleted');
+    loadPermissions();
+  } catch (err) { Toast.error(err.message); }
+}
+
+document.addEventListener('DOMContentLoaded', loadPermissions);
+</script>
+{% endblock %}
+

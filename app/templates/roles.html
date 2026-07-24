@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block title %}Role Management | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="roleSidebar">
+    <div class="sidebar-header">
+      <a href="/admin" class="text-white text-decoration-none"><h5 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Admin Console</h5></a>
+    </div>
+    <nav>
+      <div class="nav-section-title">Management</div>
+      <a href="/admin" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+      <a href="/employees" class="nav-link"><i class="fa-solid fa-users"></i> Employees</a>
+      <a href="/departments" class="nav-link"><i class="fa-solid fa-sitemap"></i> Departments</a>
+      <a href="/roles" class="nav-link active"><i class="fa-solid fa-user-shield"></i> Roles</a>
+      <a href="/permissions" class="nav-link"><i class="fa-solid fa-key"></i> Permissions</a>
+      <div class="nav-section-title">Monitoring</div>
+      <a href="/audit-logs" class="nav-link"><i class="fa-solid fa-file-shield"></i> Audit Logs</a>
+      <a href="/statistics" class="nav-link"><i class="fa-solid fa-chart-column"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-footer"><a href="#" class="nav-link" onclick="Auth.logout(); return false;"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a></div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div><h5 class="fw-bold mb-0">Role Management</h5><small class="text-muted">Define access roles and assign permissions</small></div>
+    </nav>
+    <div class="page-content">
+      <div class="row g-4">
+        <div class="col-lg-5">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-3 px-4">
+              <h6 class="fw-bold mb-0"><i class="fa-solid fa-user-shield text-primary me-2"></i>Roles</h6>
+              <button class="btn btn-primary btn-sm" onclick="openAddRoleModal()"><i class="fa-solid fa-plus me-1"></i>Add Role</button>
+            </div>
+            <div class="card-body px-4 pb-4">
+              <div id="roleLoading" class="loading-overlay"><div class="loading-spinner"></div></div>
+              <div class="list-group" id="roleList"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-7">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-3 px-4">
+              <h6 class="fw-bold mb-0" id="permAssignmentTitle"><i class="fa-solid fa-key text-primary me-2"></i>Permission Assignments</h6>
+            </div>
+            <div class="card-body px-4 pb-4">
+              <p class="text-muted small mb-3" id="permAssignmentDesc">Select a role from the left to manage its permissions.</p>
+              <div id="permCheckboxes"></div>
+              <button class="btn btn-primary mt-3" id="savePermBtn" style="display:none;" onclick="savePermissions()"><i class="fa-solid fa-floppy-disk me-2"></i>Save Permissions</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Role Modal -->
+<div class="modal fade" id="roleModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="roleModalTitle"><i class="fa-solid fa-user-shield text-primary me-2"></i>Role</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editRoleId" />
+        <div class="mb-3">
+          <label class="form-label">Role name</label>
+          <input type="text" class="form-control" id="roleName" placeholder="e.g. Manager" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" id="roleDesc" rows="2"></textarea>
+        </div>
+        <div id="roleActiveField" style="display:none;">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="roleActive"><option value="Y">Active</option><option value="N">Inactive</option></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="saveRoleBtn" onclick="saveRole()"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let roles = [];
+let permissions = [];
+let selectedRoleId = null;
+
+function toggleSidebar() { document.getElementById('roleSidebar')?.classList.toggle('open'); document.querySelector('.sidebar-overlay')?.classList.toggle('show'); }
+
+async function loadRoles() {
+  const loading = document.getElementById('roleLoading');
+  const list = document.getElementById('roleList');
+  loading.style.display = 'flex';
+  try {
+    roles = await API.get('/roles');
+    permissions = await API.get('/permissions');
+    if (roles.length === 0) {
+      list.innerHTML = '<div class="text-center text-muted py-4">No roles defined.</div>';
+      return;
+    }
+    list.innerHTML = roles.map(r => `
+      <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center ${selectedRoleId === r.role_id ? 'active' : ''}"
+        onclick="selectRole(${r.role_id})">
+        <div>
+          <span class="fw-semibold">${r.name}</span>
+          ${r.description ? `<br /><small class="text-muted">${r.description}</small>` : ''}
+        </div>
+        <div class="d-flex gap-1">
+          <span class="badge bg-soft-primary">${r.user_count || 0} users</span>
+          <button class="btn btn-sm btn-outline-${selectedRoleId === r.role_id ? 'light' : 'secondary'} ms-1" onclick="event.stopPropagation(); openEditRole(${r.role_id})"><i class="fa-solid fa-pen"></i></button>
+        </div>
+      </button>
+    `).join('');
+    if (!selectedRoleId && roles.length > 0) selectRole(roles[0].role_id);
+  } catch (err) { list.innerHTML = `<div class="text-center text-danger py-4">${err.message}</div>`; }
+  finally { loading.style.display = 'none'; }
+}
+
+function selectRole(roleId) {
+  selectedRoleId = roleId;
+  // Highlight
+  document.querySelectorAll('#roleList .list-group-item').forEach(el => el.classList.remove('active'));
+  const btn = document.querySelector(`#roleList button[onclick*="selectRole(${roleId})"]`);
+  if (btn) btn.classList.add('active');
+  renderPermissions(roleId);
+}
+
+function renderPermissions(roleId) {
+  const role = roles.find(r => r.role_id === roleId);
+  if (!role) return;
+  document.getElementById('permAssignmentTitle').innerHTML = `<i class="fa-solid fa-key text-primary me-2"></i>Permissions for ${role.name}`;
+  document.getElementById('permAssignmentDesc').textContent = 'Assign permissions to this role.';
+  const container = document.getElementById('permCheckboxes');
+  if (permissions.length === 0) {
+    container.innerHTML = '<p class="text-muted">No permissions available. Create permissions first.</p>';
+    document.getElementById('savePermBtn').style.display = 'none';
+    return;
+  }
+  const rolePerms = (role.permissions || []).map(p => p.permission_id || p.name);
+  container.innerHTML = permissions.map(p => `
+    <div class="form-check mb-2">
+      <input class="form-check-input perm-checkbox" type="checkbox" value="${p.permission_id}" id="perm_${p.permission_id}"
+        ${rolePerms.includes(p.permission_id) || rolePerms.includes(p.name) ? 'checked' : ''} />
+      <label class="form-check-label" for="perm_${p.permission_id}">
+        <span class="fw-semibold">${p.name}</span>
+        ${p.description ? `<br /><small class="text-muted">${p.description}</small>` : ''}
+      </label>
+    </div>
+  `).join('');
+  document.getElementById('savePermBtn').style.display = 'block';
+}
+
+async function savePermissions() {
+  if (!selectedRoleId) return;
+  const checked = Array.from(document.querySelectorAll('.perm-checkbox:checked')).map(cb => parseInt(cb.value));
+  const btn = document.getElementById('savePermBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner spinner me-2"></i>Saving...';
+  try {
+    await API.put(`/roles/${selectedRoleId}/permissions`, { permission_ids: checked });
+    Toast.success('Permissions updated!');
+    loadRoles();
+  } catch (err) { Toast.error(err.message); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save Permissions'; }
+}
+
+function openAddRoleModal() {
+  document.getElementById('roleModalTitle').textContent = 'Add Role';
+  document.getElementById('editRoleId').value = '';
+  document.getElementById('roleName').value = '';
+  document.getElementById('roleDesc').value = '';
+  document.getElementById('roleActiveField').style.display = 'none';
+  new bootstrap.Modal(document.getElementById('roleModal')).show();
+}
+
+async function openEditRole(id) {
+  const r = roles.find(x => x.role_id === id);
+  if (!r) return;
+  document.getElementById('roleModalTitle').textContent = 'Edit Role';
+  document.getElementById('editRoleId').value = id;
+  document.getElementById('roleName').value = r.name || '';
+  document.getElementById('roleDesc').value = r.description || '';
+  document.getElementById('roleActive').value = (r.is_active === 'Y' || r.is_active === true) ? 'Y' : 'N';
+  document.getElementById('roleActiveField').style.display = 'block';
+  new bootstrap.Modal(document.getElementById('roleModal')).show();
+}
+
+async function saveRole() {
+  const id = document.getElementById('editRoleId').value;
+  const data = {
+    name: document.getElementById('roleName').value.trim(),
+    description: document.getElementById('roleDesc').value.trim() || null,
+  };
+  const btn = document.getElementById('saveRoleBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner spinner me-2"></i>Saving...';
+  try {
+    if (id) {
+      data.is_active = document.getElementById('roleActive').value;
+      await API.put(`/roles/${id}`, data);
+      Toast.success('Role updated!');
+    } else {
+      await API.post('/roles', data);
+      Toast.success('Role created!');
+    }
+    bootstrap.Modal.getInstance(document.getElementById('roleModal')).hide();
+    loadRoles();
+  } catch (err) { Toast.error(err.message); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save'; }
+}
+
+document.addEventListener('DOMContentLoaded', loadRoles);
+</script>
+{% endblock %}
+

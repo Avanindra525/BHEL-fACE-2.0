@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Contact | FaceAuth Enterprise{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8 text-center mb-5">
+      <span class="badge bg-soft-primary px-3 py-2 mb-2">Contact</span>
+      <h1 class="fw-bold display-5 mb-3">Get in touch</h1>
+      <p class="lead text-muted">Reach out for enterprise deployment, onboarding, or security consultation.</p>
+    </div>
+  </div>
+
+  <div class="row g-4 justify-content-center">
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm p-4">
+        <h4 class="fw-bold mb-4"><i class="fa-solid fa-envelope text-primary me-2"></i>Send us a message</h4>
+        <form id="contactForm" data-validate-form>
+          <div class="mb-3">
+            <label class="form-label">Full name</label>
+            <input type="text" class="form-control" id="contactName" name="contactName" data-validate="required|min:2" placeholder="Your name" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email address</label>
+            <input type="email" class="form-control" id="contactEmail" name="contactEmail" data-validate="required|email" placeholder="you@company.com" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Subject</label>
+            <select class="form-select" id="contactSubject" name="contactSubject" data-validate="required">
+              <option value="">Select a topic</option>
+              <option value="deployment">Enterprise Deployment</option>
+              <option value="support">Technical Support</option>
+              <option value="security">Security Consultation</option>
+              <option value="partnership">Partnership Inquiry</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Message</label>
+            <textarea class="form-control" id="contactMessage" name="contactMessage" rows="4" data-validate="required|min:10" placeholder="How can we help?"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fa-solid fa-paper-plane me-2"></i>Send Message
+          </button>
+        </form>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm p-4 h-100">
+        <h4 class="fw-bold mb-4"><i class="fa-solid fa-circle-info text-primary me-2"></i>Contact Info</h4>
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <i class="fa-solid fa-envelope text-primary mt-1"></i>
+          <div>
+            <h6 class="fw-bold mb-0">Email</h6>
+            <small class="text-muted">support@faceauth.com</small>
+          </div>
+        </div>
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <i class="fa-solid fa-phone text-primary mt-1"></i>
+          <div>
+            <h6 class="fw-bold mb-0">Phone</h6>
+            <small class="text-muted">+1 (555) 123-4567</small>
+          </div>
+        </div>
+        <div class="d-flex align-items-start gap-3 mb-3">
+          <i class="fa-solid fa-location-dot text-primary mt-1"></i>
+          <div>
+            <h6 class="fw-bold mb-0">Office</h6>
+            <small class="text-muted">123 Enterprise Ave, Suite 400<br />San Francisco, CA 94105</small>
+          </div>
+        </div>
+        <div class="d-flex align-items-start gap-3">
+          <i class="fa-solid fa-clock text-primary mt-1"></i>
+          <div>
+            <h6 class="fw-bold mb-0">Hours</h6>
+            <small class="text-muted">Monday — Friday: 9:00 AM – 6:00 PM EST</small>
+          </div>
+        </div>
+        <hr />
+        <div class="d-flex gap-3">
+          <a href="#" class="btn btn-outline-primary btn-sm rounded-circle" style="width:38px;height:38px;" aria-label="Twitter"><i class="fa-brands fa-twitter"></i></a>
+          <a href="#" class="btn btn-outline-primary btn-sm rounded-circle" style="width:38px;height:38px;" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
+          <a href="#" class="btn btn-outline-primary btn-sm rounded-circle" style="width:38px;height:38px;" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('contactForm')?.addEventListener('submit', function(e) {
+  e.preventDefault();
+  Toast.success('Thank you! Your message has been sent. We will respond within 24 hours.');
+  this.reset();
+  this.querySelectorAll('.is-valid').forEach(el => el.classList.remove('is-valid'));
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Department Management | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="deptSidebar">
+    <div class="sidebar-header">
+      <a href="/admin" class="text-white text-decoration-none"><h5 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Admin Console</h5></a>
+    </div>
+    <nav>
+      <div class="nav-section-title">Management</div>
+      <a href="/admin" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+      <a href="/employees" class="nav-link"><i class="fa-solid fa-users"></i> Employees</a>
+      <a href="/departments" class="nav-link active"><i class="fa-solid fa-sitemap"></i> Departments</a>
+      <a href="/roles" class="nav-link"><i class="fa-solid fa-user-shield"></i> Roles</a>
+      <a href="/permissions" class="nav-link"><i class="fa-solid fa-key"></i> Permissions</a>
+      <div class="nav-section-title">Monitoring</div>
+      <a href="/audit-logs" class="nav-link"><i class="fa-solid fa-file-shield"></i> Audit Logs</a>
+      <a href="/statistics" class="nav-link"><i class="fa-solid fa-chart-column"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-footer"><a href="#" class="nav-link" onclick="Auth.logout(); return false;"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a></div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div><h5 class="fw-bold mb-0">Department Management</h5><small class="text-muted">Organize employee departments</small></div>
+    </nav>
+    <div class="page-content">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center pt-3 px-4">
+          <h6 class="fw-bold mb-0"><i class="fa-solid fa-sitemap text-primary me-2"></i>All Departments</h6>
+          <button class="btn btn-primary btn-sm" onclick="openAddDeptModal()"><i class="fa-solid fa-plus me-1"></i>Add Department</button>
+        </div>
+        <div class="card-body px-4 pb-4">
+          <div id="deptLoading" class="loading-overlay"><div class="loading-spinner"></div></div>
+          <div id="deptContent">
+            <div class="table-container">
+              <table class="table table-hover">
+                <thead><tr><th>Name</th><th>Code</th><th>Employees</th><th>Status</th><th>Created</th><th class="text-end">Actions</th></tr></thead>
+                <tbody id="deptBody"><tr><td colspan="6" class="text-center text-muted py-4">Loading...</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add/Edit Department Modal -->
+<div class="modal fade" id="deptModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="deptModalTitle"><i class="fa-solid fa-sitemap text-primary me-2"></i>Department</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editDeptId" />
+        <div class="mb-3">
+          <label class="form-label">Department name</label>
+          <input type="text" class="form-control" id="deptName" placeholder="Engineering" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Code <small class="text-muted">(optional)</small></label>
+          <input type="text" class="form-control" id="deptCode" placeholder="ENG" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea class="form-control" id="deptDesc" rows="2" placeholder="Department description"></textarea>
+        </div>
+        <div id="deptActiveField" style="display:none;">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="deptActive"><option value="Y">Active</option><option value="N">Inactive</option></select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="saveDeptBtn" onclick="saveDepartment()"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSidebar() { document.getElementById('deptSidebar')?.classList.toggle('open'); document.querySelector('.sidebar-overlay')?.classList.toggle('show'); }
+
+async function loadDepartments() {
+  const loading = document.getElementById('deptLoading');
+  const tbody = document.getElementById('deptBody');
+  loading.style.display = 'flex';
+  try {
+    const depts = await API.get('/departments');
+    if (depts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">No departments found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = depts.map(d => `
+      <tr>
+        <td><span class="fw-semibold">${d.name}</span></td>
+        <td>${d.code ? `<code>${d.code}</code>` : '<span class="text-muted">--</span>'}</td>
+        <td><span class="badge bg-soft-primary">${d.employee_count || 0}</span></td>
+        <td>${(d.is_active === 'Y' || d.is_active === true) ? '<span class="badge bg-soft-success">Active</span>' : '<span class="badge bg-soft-danger">Inactive</span>'}</td>
+        <td class="small text-muted">${d.created_at ? new Date(d.created_at).toLocaleDateString() : '--'}</td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-primary" onclick="openEditDept(${d.department_id})"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteDepartment(${d.department_id})"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">${err.message}</td></tr>`; }
+  finally { loading.style.display = 'none'; }
+}
+
+function openAddDeptModal() {
+  document.getElementById('deptModalTitle').textContent = 'Add Department';
+  document.getElementById('editDeptId').value = '';
+  document.getElementById('deptName').value = '';
+  document.getElementById('deptCode').value = '';
+  document.getElementById('deptDesc').value = '';
+  document.getElementById('deptActiveField').style.display = 'none';
+  new bootstrap.Modal(document.getElementById('deptModal')).show();
+}
+
+async function openEditDept(id) {
+  try {
+    const depts = await API.get('/departments');
+    const d = depts.find(x => x.department_id === id);
+    if (!d) return;
+    document.getElementById('deptModalTitle').textContent = 'Edit Department';
+    document.getElementById('editDeptId').value = id;
+    document.getElementById('deptName').value = d.name || '';
+    document.getElementById('deptCode').value = d.code || '';
+    document.getElementById('deptDesc').value = d.description || '';
+    document.getElementById('deptActive').value = (d.is_active === 'Y' || d.is_active === true) ? 'Y' : 'N';
+    document.getElementById('deptActiveField').style.display = 'block';
+    new bootstrap.Modal(document.getElementById('deptModal')).show();
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function saveDepartment() {
+  const id = document.getElementById('editDeptId').value;
+  const data = {
+    name: document.getElementById('deptName').value.trim(),
+    code: document.getElementById('deptCode').value.trim() || null,
+    description: document.getElementById('deptDesc').value.trim() || null,
+  };
+  const btn = document.getElementById('saveDeptBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner spinner me-2"></i>Saving...';
+  try {
+    if (id) {
+      data.is_active = document.getElementById('deptActive').value;
+      await API.put(`/departments/${id}`, data);
+      Toast.success('Department updated!');
+    } else {
+      await API.post('/departments', data);
+      Toast.success('Department created!');
+    }
+    bootstrap.Modal.getInstance(document.getElementById('deptModal')).hide();
+    loadDepartments();
+  } catch (err) { Toast.error(err.message); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save'; }
+}
+
+async function deleteDepartment(id) {
+  if (!confirm('Delete this department? Employees will become unassigned.')) return;
+  try {
+    await API.del(`/departments/${id}`);
+    Toast.success('Department deleted');
+    loadDepartments();
+  } catch (err) { Toast.error(err.message); }
+}
+
+document.addEventListener('DOMContentLoaded', loadDepartments);
+</script>
+{% endblock %}
+

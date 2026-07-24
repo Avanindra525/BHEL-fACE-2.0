@@ -1,0 +1,9 @@
+"""Application constants."""
+
+DEFAULT_PAGE_SIZE = 20
+MAX_PAGE_SIZE = 100
+
+DEFAULT_ROLES = ("Super Admin", "Admin", "HR", "Manager", "Employee", "Guest")
+PASSWORD_MIN_LENGTH = 12
+FACE_EMBEDDING_DIMENSION = 512
+DEFAULT_FACE_SIMILARITY_THRESHOLD = 0.45

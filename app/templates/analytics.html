@@ -1,0 +1,677 @@
+{% extends "base.html" %}
+{% block title %}Analytics | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="analyticsSidebar">
+    <div class="sidebar-header">
+      <a href="/admin" class="text-white text-decoration-none"><h5 class="fw-bold mb-0"><i class="fa-solid fa-chart-pie me-2"></i>Analytics</h5></a>
+    </div>
+    <nav>
+      <div class="nav-section-title">Overview</div>
+      <a href="#dashboard-section" class="nav-link active" data-section="dashboard"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+      <a href="#login-section" class="nav-link" data-section="login"><i class="fa-solid fa-right-to-bracket"></i> Login Analytics</a>
+      <a href="#employee-section" class="nav-link" data-section="employees"><i class="fa-solid fa-users"></i> Employee Analytics</a>
+      <a href="#face-section" class="nav-link" data-section="face"><i class="fa-solid fa-face-smile"></i> Face Recognition</a>
+      <a href="#reports-section" class="nav-link" data-section="reports"><i class="fa-solid fa-file-lines"></i> Reports</a>
+      <a href="#heatmap-section" class="nav-link" data-section="heatmap"><i class="fa-solid fa-table-cells"></i> Login Heatmap</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-link" onclick="Auth.logout(); return false;"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a>
+    </div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div><h5 class="fw-bold mb-0"><i class="fa-solid fa-chart-line text-primary me-2"></i>Analytics Dashboard</h5><small class="text-muted">Enterprise-wide metrics and insights</small></div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="form-check form-switch mb-0">
+          <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+          <label class="form-check-label small" for="autoRefreshToggle">Auto-refresh</label>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" onclick="loadAllAnalytics()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="toggleDarkMode()"><i class="fa-solid fa-moon"></i></button>
+      </div>
+    </nav>
+
+    <div class="page-content">
+      <div id="analyticsLoading" class="loading-overlay"><div class="loading-spinner"></div></div>
+      <div id="analyticsContent" style="display:none;">
+
+        <!-- ===== FILTER BAR ===== -->
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-body p-3">
+            <div class="row g-2 align-items-end">
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Start Date</label>
+                <input type="date" class="form-control form-control-sm" id="filterStartDate">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">End Date</label>
+                <input type="date" class="form-control form-control-sm" id="filterEndDate">
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Department</label>
+                <select class="form-select form-select-sm" id="filterDepartment">
+                  <option value="">All Departments</option>
+                  {% if departments %}
+                    {% for dept in departments %}
+                      <option value="{{ dept.department_id }}">{{ dept.name }}</option>
+                    {% endfor %}
+                  {% endif %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label small fw-semibold">Employee</label>
+                <select class="form-select form-select-sm" id="filterEmployee">
+                  <option value="">All Employees</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== SECTION 1: DASHBOARD ===== -->
+        <section id="dashboard-section" class="analytics-section">
+          <h5 class="fw-bold mb-3"><i class="fa-solid fa-gauge-high text-primary me-2"></i>Dashboard Summary</h5>
+          <div class="row g-3 mb-4" id="dashboardCards"></div>
+        </section>
+
+        <!-- ===== SECTION 2: LOGIN ANALYTICS ===== -->
+        <section id="login-section" class="analytics-section">
+          <h5 class="fw-bold mb-3"><i class="fa-solid fa-right-to-bracket text-primary me-2"></i>Login Analytics</h5>
+          <div class="row g-4">
+            <div class="col-lg-8">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Daily Login Trend <small class="text-muted fw-normal">(14 days)</small></h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container-lg"><canvas id="dailyTrendChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Login Methods</h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container-sm"><canvas id="loginMethodChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Monthly Login Trend</h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container"><canvas id="monthlyTrendChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Auth Success vs Failure</h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container"><canvas id="authRateChart"></canvas></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SECTION 3: EMPLOYEE ANALYTICS ===== -->
+        <section id="employee-section" class="analytics-section">
+          <h5 class="fw-bold mb-3 mt-4"><i class="fa-solid fa-users text-primary me-2"></i>Employee Analytics</h5>
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Employee Growth <small class="text-muted fw-normal">(12 months)</small></h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container"><canvas id="growthChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Department Distribution</h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container"><canvas id="deptDistChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Employee Status</h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container-sm"><canvas id="empStatusChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Face Registration</h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container-sm"><canvas id="faceRegChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Locked Accounts</h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container-sm"><canvas id="lockedChart"></canvas></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SECTION 4: FACE RECOGNITION ===== -->
+        <section id="face-section" class="analytics-section">
+          <h5 class="fw-bold mb-3 mt-4"><i class="fa-solid fa-face-smile text-primary me-2"></i>Face Recognition Analytics</h5>
+          <div class="row g-4">
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Recognition Accuracy Trend <small class="text-muted fw-normal">(30 days)</small></h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container"><canvas id="accuracyTrendChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Face Registration Progress <small class="text-muted fw-normal">(monthly)</small></h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container"><canvas id="faceRegProgressChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Pose Quality Distribution</h6></div>
+                <div class="card-body px-4 pb-4"><div class="chart-container"><canvas id="poseQualityChart"></canvas></div></div>
+              </div>
+            </div>
+            <div class="col-lg-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pt-3 px-4"><h6 class="fw-bold mb-0">Avg Recognition Confidence</h6></div>
+                <div class="card-body px-4 pb-4">
+                  <div class="text-center py-4">
+                    <div class="display-3 fw-bold text-primary" id="avgConfidenceDisplay">0%</div>
+                    <p class="text-muted mb-0 mt-2">Average embedding quality score</p>
+                    <div class="progress mt-3" style="height: 8px;">
+                      <div class="progress-bar bg-primary" id="confidenceBar" style="width: 0%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SECTION 5: LOGIN HEATMAP ===== -->
+        <section id="heatmap-section" class="analytics-section">
+          <h5 class="fw-bold mb-3 mt-4"><i class="fa-solid fa-table-cells text-primary me-2"></i>Login Heatmap <small class="text-muted fw-normal">(Hour × Day of Week)</small></h5>
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered heatmap-table mb-0" id="heatmapTable">
+                  <thead><tr><th>Hour</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr></thead>
+                  <tbody id="heatmapBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== SECTION 6: REPORTS ===== -->
+        <section id="reports-section" class="analytics-section">
+          <h5 class="fw-bold mb-3 mt-4"><i class="fa-solid fa-file-lines text-primary me-2"></i>Reports & Export</h5>
+          <div class="row g-4">
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4 text-center">
+                  <i class="fa-solid fa-users fa-3x text-primary mb-3"></i>
+                  <h6 class="fw-bold">Employee Report</h6>
+                  <p class="text-muted small">Full employee list with departments and status</p>
+                  <button class="btn btn-outline-primary btn-sm" onclick="exportReport('employees')"><i class="fa-solid fa-download me-1"></i> Export CSV</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4 text-center">
+                  <i class="fa-solid fa-right-to-bracket fa-3x text-success mb-3"></i>
+                  <h6 class="fw-bold">Login Report</h6>
+                  <p class="text-muted small">All login attempts with method and status</p>
+                  <button class="btn btn-outline-success btn-sm" onclick="exportReport('login')"><i class="fa-solid fa-download me-1"></i> Export CSV</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4 text-center">
+                  <i class="fa-solid fa-face-smile fa-3x text-info mb-3"></i>
+                  <h6 class="fw-bold">Face Registration Report</h6>
+                  <p class="text-muted small">All face samples with quality scores</p>
+                  <button class="btn btn-outline-info btn-sm" onclick="exportReport('face_registration')"><i class="fa-solid fa-download me-1"></i> Export CSV</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4 text-center">
+                  <i class="fa-solid fa-calendar-check fa-3x text-warning mb-3"></i>
+                  <h6 class="fw-bold">Attendance Report</h6>
+                  <p class="text-muted small">Per-user login summaries with success rates</p>
+                  <button class="btn btn-outline-warning btn-sm" onclick="exportReport('attendance')"><i class="fa-solid fa-download me-1"></i> Export CSV</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4 text-center">
+                  <i class="fa-solid fa-building fa-3x text-danger mb-3"></i>
+                  <h6 class="fw-bold">Department Report</h6>
+                  <p class="text-muted small">Department stats with employee counts</p>
+                  <button class="btn btn-outline-danger btn-sm" onclick="exportReport('department')"><i class="fa-solid fa-download me-1"></i> Export CSV</button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4 text-center">
+                  <i class="fa-solid fa-chart-line fa-3x text-secondary mb-3"></i>
+                  <h6 class="fw-bold">Recognition Accuracy</h6>
+                  <p class="text-muted small">Face recognition accuracy over time</p>
+                  <button class="btn btn-outline-secondary btn-sm" onclick="exportReport('recognition')"><i class="fa-solid fa-download me-1"></i> Export CSV</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== ATTENDANCE TABLE ===== -->
+        <section class="analytics-section mt-4">
+          <h5 class="fw-bold mb-3"><i class="fa-solid fa-table text-primary me-2"></i>Attendance Details</h5>
+          <div class="card border-0 shadow-sm">
+            <div class="card-body p-4">
+              <div class="table-responsive">
+                <table class="table table-hover datatable w-100" id="attendanceTable">
+                  <thead>
+                    <tr><th>Employee</th><th>Department</th><th>Staff #</th><th>Total Logins</th><th>Successful</th><th>Failed</th><th>Success Rate</th><th>Last Login</th></tr>
+                  </thead>
+                  <tbody id="attendanceBody"></tbody>
+                </table>
+              </div>
+              <nav><ul class="pagination pagination-sm justify-content-center mt-3" id="attendancePagination"></ul></nav>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+let charts = {};
+let refreshInterval = null;
+let attendancePage = 1;
+
+function toggleSidebar() {
+  document.getElementById('analyticsSidebar')?.classList.toggle('open');
+  document.querySelector('.sidebar-overlay')?.classList.toggle('show');
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+  const icon = document.querySelector('.btn-outline-secondary i');
+  icon.className = document.body.classList.contains('dark-mode') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+}
+
+function getFilters() {
+  return {
+    start_date: document.getElementById('filterStartDate').value || undefined,
+    end_date: document.getElementById('filterEndDate').value || undefined,
+    department_id: document.getElementById('filterDepartment').value || undefined,
+    employee_id: document.getElementById('filterEmployee').value || undefined,
+  };
+}
+
+function getExportUrl(report) {
+  const f = getFilters();
+  const params = new URLSearchParams({ report, format: 'csv' });
+  if (f.start_date) params.set('start_date', f.start_date);
+  if (f.end_date) params.set('end_date', f.end_date);
+  if (f.department_id) params.set('department_id', f.department_id);
+  return `/api/statistics/export?${params.toString()}`;
+}
+
+function exportReport(report) {
+  const token = Auth.getToken();
+  if (!token) { Toast.error('Please login first'); return; }
+  window.open(getExportUrl(report) + '&token=' + encodeURIComponent(token), '_blank');
+}
+
+// ─── Card rendering ────────────────────────────────────────────────────────
+function renderDashboardCards(data) {
+  const container = document.getElementById('dashboardCards');
+  const cards = [
+    { label: 'Total Employees', value: data.total_employees, icon: 'users', color: 'primary' },
+    { label: 'Active Employees', value: data.active_employees, icon: 'user-check', color: 'success' },
+    { label: 'Disabled', value: data.disabled_employees, icon: 'user-slash', color: 'danger' },
+    { label: 'Today Logins', value: data.today_logins, icon: 'right-to-bracket', color: 'info' },
+    { label: 'Weekly Logins', value: data.weekly_logins, icon: 'clock', color: 'warning' },
+    { label: 'Monthly Logins', value: data.monthly_logins, icon: 'calendar', color: 'secondary' },
+    { label: 'Face Registered', value: data.face_registered, icon: 'face-smile', color: 'success' },
+    { label: 'Recognition Accuracy', value: data.recognition_accuracy + '%', icon: 'bullseye', color: 'primary' },
+    { label: 'Auth Success Rate', value: data.auth_success_rate + '%', icon: 'shield-check', color: 'info' },
+    { label: 'Avg Confidence', value: data.avg_recognition_confidence + '%', icon: 'gauge-high', color: 'warning' },
+    { label: 'Face Login Rate', value: data.face_login_success_rate + '%', icon: 'camera', color: 'primary' },
+    { label: 'Failed Logins', value: data.failed_logins, icon: 'ban', color: 'danger' },
+  ];
+  container.innerHTML = cards.map(c => `
+    <div class="col-md-3 col-6">
+      <div class="stat-card">
+        <div class="stat-icon bg-${c.color} bg-opacity-10 text-${c.color}"><i class="fa-solid fa-${c.icon}"></i></div>
+        <div class="stat-label">${c.label}</div>
+        <div class="stat-value">${c.value}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── Chart Helpers ─────────────────────────────────────────────────────────
+function createOrUpdate(id, config) {
+  if (charts[id]) { charts[id].destroy(); }
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, config);
+}
+
+function defaultOptions(title, scales) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, padding: 12 } }, title: title ? { display: true, text: title, font: { size: 13 } } : undefined },
+    scales: scales || { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } },
+  };
+}
+
+// ─── Main Data Loader ──────────────────────────────────────────────────────
+async function loadAllAnalytics() {
+  const loading = document.getElementById('analyticsLoading');
+  const content = document.getElementById('analyticsContent');
+  loading.style.display = 'flex';
+  content.style.display = 'none';
+
+  try {
+    const f = getFilters();
+    const params = new URLSearchParams();
+    if (f.start_date) params.set('start_date', f.start_date);
+    if (f.end_date) params.set('end_date', f.end_date);
+    if (f.department_id) params.set('department_id', f.department_id);
+    const qs = params.toString() ? '?' + params.toString() : '';
+
+    // Fetch all endpoints in parallel
+    const [dashboard, login, employees, face, deptStats] = await Promise.all([
+      API.get('/statistics/dashboard' + qs).catch(() => ({})),
+      API.get('/statistics/login' + qs).catch(() => ({})),
+      API.get('/statistics/employees' + qs).catch(() => ({})),
+      API.get('/statistics/face' + qs).catch(() => ({})),
+      API.get('/statistics/departments' + qs).catch(() => ({})),
+    ]);
+
+    // ── Dashboard Cards ──
+    renderDashboardCards(dashboard);
+
+    // ── Avg Confidence ──
+    const conf = dashboard.avg_recognition_confidence || 0;
+    document.getElementById('avgConfidenceDisplay').textContent = conf + '%';
+    document.getElementById('confidenceBar').style.width = conf + '%';
+
+    // ── Daily Login Trend ──
+    const dailyLabels = login.daily_labels || [];
+    const dailySuccess = login.daily_success || [];
+    const dailyFailed = login.daily_failed || [];
+    createOrUpdate('dailyTrendChart', {
+      type: 'line',
+      data: {
+        labels: dailyLabels,
+        datasets: [
+          { label: 'Success', data: dailySuccess, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 },
+          { label: 'Failed', data: dailyFailed, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.4 },
+        ],
+      },
+      options: defaultOptions(false, { y: { beginAtZero: true, stacked: false, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }),
+    });
+
+    // ── Login Methods ──
+    createOrUpdate('loginMethodChart', {
+      type: 'doughnut',
+      data: {
+        labels: ['Password', 'Face Recognition'],
+        datasets: [{ data: [dashboard.password_logins || 0, dashboard.face_logins || 0], backgroundColor: ['#2563eb', '#10b981'] }],
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+    });
+
+    // ── Monthly Trend ──
+    createOrUpdate('monthlyTrendChart', {
+      type: 'bar',
+      data: {
+        labels: login.monthly_labels || [],
+        datasets: [
+          { label: 'Success', data: login.monthly_success || [], backgroundColor: '#10b981', borderRadius: 4 },
+          { label: 'Failed', data: login.monthly_failed || [], backgroundColor: '#ef4444', borderRadius: 4 },
+        ],
+      },
+      options: defaultOptions(false, { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } }, stacked: true }),
+    });
+
+    // ── Auth Rate ──
+    createOrUpdate('authRateChart', {
+      type: 'doughnut',
+      data: {
+        labels: ['Successful', 'Failed'],
+        datasets: [{ data: [dashboard.successful_logins || 0, dashboard.failed_logins || 0], backgroundColor: ['#10b981', '#ef4444'] }],
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, cutout: '65%' },
+    });
+
+    // ── Employee Growth ──
+    createOrUpdate('growthChart', {
+      type: 'line',
+      data: {
+        labels: employees.growth_labels || [],
+        datasets: [{ label: 'Employees', data: employees.growth_data || [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)', fill: true, tension: 0.4 }],
+      },
+      options: defaultOptions(false, { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }),
+    });
+
+    // ── Department Distribution ──
+    const deptData = employees.departments || {};
+    const deptLabels = Object.keys(deptData).length ? Object.keys(deptData) : ['No Data'];
+    const deptValues = Object.keys(deptData).length ? Object.values(deptData) : [0];
+    createOrUpdate('deptDistChart', {
+      type: 'bar',
+      data: {
+        labels: deptLabels,
+        datasets: [{ label: 'Employees', data: deptValues, backgroundColor: ['#2563eb','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#ec4899','#14b8a6'], borderRadius: 6 }],
+      },
+      options: defaultOptions(false, { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }),
+    });
+
+    // ── Employee Status ──
+    createOrUpdate('empStatusChart', {
+      type: 'doughnut',
+      data: {
+        labels: ['Active', 'Inactive'],
+        datasets: [{ data: [employees.active_count || 0, employees.inactive_count || 0], backgroundColor: ['#10b981', '#e2e8f0'] }],
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+    });
+
+    // ── Face Registration ──
+    const regd = dashboard.face_registered || 0;
+    const unregd = (dashboard.total_employees || 0) - regd;
+    createOrUpdate('faceRegChart', {
+      type: 'doughnut',
+      data: { labels: ['Registered', 'Not Registered'], datasets: [{ data: [Math.max(0, regd), Math.max(0, unregd)], backgroundColor: ['#10b981', '#e2e8f0'] }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+    });
+
+    // ── Locked Accounts ──
+    createOrUpdate('lockedChart', {
+      type: 'doughnut',
+      data: { labels: ['Locked', 'Unlocked'], datasets: [{ data: [employees.locked_count || 0, Math.max(0, (dashboard.total_employees || 0) - (employees.locked_count || 0))], backgroundColor: ['#ef4444', '#e2e8f0'] }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } },
+    });
+
+    // ── Accuracy Trend ──
+    createOrUpdate('accuracyTrendChart', {
+      type: 'line',
+      data: {
+        labels: face.accuracy_dates || [],
+        datasets: [{ label: 'Accuracy %', data: face.accuracy_values || [], borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', fill: true, tension: 0.4, yAxisID: 'y' }],
+      },
+      options: defaultOptions(false, { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }),
+    });
+
+    // ── Face Registration Progress ──
+    createOrUpdate('faceRegProgressChart', {
+      type: 'bar',
+      data: {
+        labels: face.monthly_labels || [],
+        datasets: [{ label: 'Registrations', data: face.monthly_registrations || [], backgroundColor: '#8b5cf6', borderRadius: 4 }],
+      },
+      options: defaultOptions(false, { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }),
+    });
+
+    // ── Pose Quality ──
+    const poseQuality = face.pose_quality || {};
+    const poseLabels = Object.keys(poseQuality).length ? Object.keys(poseQuality) : ['No Data'];
+    const poseValues = Object.keys(poseQuality).length ? Object.values(poseQuality) : [0];
+    createOrUpdate('poseQualityChart', {
+      type: 'radar',
+      data: {
+        labels: poseLabels,
+        datasets: [{ label: 'Quality Score', data: poseValues, backgroundColor: 'rgba(37,99,235,0.2)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb' }],
+      },
+      options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } },
+    });
+
+    // ── Heatmap ──
+    renderHeatmap(login);
+
+    // ── Attendance Table ──
+    loadAttendanceTable();
+
+    loading.style.display = 'none';
+    content.style.display = 'block';
+  } catch (err) {
+    loading.innerHTML = `<div class="text-center py-5"><i class="fa-solid fa-triangle-exclamation text-warning fa-3x mb-3"></i><h5>Error loading analytics</h5><p class="text-muted">${err.message}</p><button class="btn btn-primary" onclick="loadAllAnalytics()">Retry</button></div>`;
+  }
+}
+
+// ── Heatmap ─────────────────────────────────────────────────────────────────
+function renderHeatmap(data) {
+  const tbody = document.getElementById('heatmapBody');
+  const heatmapData = data.heatmap_data || [];
+  const maxVal = Math.max(...heatmapData.flat(), 1);
+  let html = '';
+  for (let h = 0; h < 24; h++) {
+    html += `<tr><td class="fw-semibold small">${String(h).padStart(2,'0')}:00</td>`;
+    for (let d = 0; d < 7; d++) {
+      const val = heatmapData[h]?.[d] || 0;
+      const intensity = Math.min(1, val / maxVal);
+      const r = Math.round(37 + (intensity * 219));
+      const g = Math.round(99 + (intensity * -89));
+      const b = Math.round(235 + (intensity * -185));
+      html += `<td style="background-color: rgba(${r},${g},${b},${0.15 + intensity * 0.7}); color: ${intensity > 0.5 ? 'white' : '#333'}; text-align: center; font-size: 0.75rem; padding: 0.3rem;">${val || ''}</td>`;
+    }
+    html += '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+// ── Attendance Table ────────────────────────────────────────────────────────
+async function loadAttendanceTable(page) {
+  if (page) attendancePage = page;
+  const f = getFilters();
+  const params = new URLSearchParams({ page: attendancePage, page_size: '10' });
+  if (f.start_date) params.set('start_date', f.start_date);
+  if (f.end_date) params.set('end_date', f.end_date);
+  if (f.department_id) params.set('department_id', f.department_id);
+
+  try {
+    const data = await API.get('/statistics/attendance?' + params.toString());
+    const tbody = document.getElementById('attendanceBody');
+    tbody.innerHTML = (data.results || []).map(r => `
+      <tr>
+        <td><span class="fw-semibold">${r.full_name}</span></td>
+        <td>${r.department || 'N/A'}</td>
+        <td>${r.staff_number || 'N/A'}</td>
+        <td>${r.total_logins}</td>
+        <td class="text-success fw-semibold">${r.successful}</td>
+        <td class="text-danger">${r.failed}</td>
+        <td>${r.total_logins > 0 ? Math.round(r.successful / r.total_logins * 100) + '%' : '0%'}</td>
+        <td><small>${r.last_login ? new Date(r.last_login).toLocaleString() : 'Never'}</small></td>
+      </tr>
+    `).join('');
+
+    // Pagination
+    const total = data.total || 0;
+    const totalPages = Math.ceil(total / 10);
+    const pag = document.getElementById('attendancePagination');
+    let phtml = `<li class="page-item ${attendancePage <= 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadAttendanceTable(1)">&laquo;</a></li>`;
+    for (let i = Math.max(1, attendancePage - 2); i <= Math.min(totalPages, attendancePage + 2); i++) {
+      phtml += `<li class="page-item ${i === attendancePage ? 'active' : ''}"><a class="page-link" href="#" onclick="loadAttendanceTable(${i})">${i}</a></li>`;
+    }
+    phtml += `<li class="page-item ${attendancePage >= totalPages ? 'disabled' : ''}"><a class="page-link" href="#" onclick="loadAttendanceTable(${attendancePage + 1})">&raquo;</a></li>`;
+    pag.innerHTML = phtml;
+  } catch (e) {
+    // Table remains empty
+  }
+}
+
+// ── Init ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // Set default dates
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - 30);
+  document.getElementById('filterStartDate').value = start.toISOString().split('T')[0];
+  document.getElementById('filterEndDate').value = end.toISOString().split('T')[0];
+
+  // Load employees for employee filter
+  try {
+    const emps = await API.get('/employees');
+    const sel = document.getElementById('filterEmployee');
+    (emps || []).forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.user_id;
+      opt.textContent = e.full_name + ' (' + (e.staff_number || e.username) + ')';
+      sel.appendChild(opt);
+    });
+  } catch (e) {}
+
+  // Filter change triggers reload
+  document.querySelectorAll('#filterStartDate, #filterEndDate, #filterDepartment, #filterEmployee').forEach(el => {
+    el.addEventListener('change', loadAllAnalytics);
+  });
+
+  // Auto-refresh
+  document.getElementById('autoRefreshToggle').addEventListener('change', function() {
+    if (this.checked) {
+      refreshInterval = setInterval(loadAllAnalytics, 60000);
+    } else {
+      clearInterval(refreshInterval);
+    }
+  });
+
+  // Sidebar navigation
+  document.querySelectorAll('#analyticsSidebar .nav-link[data-section]').forEach(link => {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      document.querySelectorAll('#analyticsSidebar .nav-link').forEach(l => l.classList.remove('active'));
+      this.classList.add('active');
+      const section = this.dataset.section;
+      document.querySelectorAll('.analytics-section').forEach(s => s.style.display = 'none');
+      if (section === 'dashboard') document.querySelectorAll('.analytics-section').forEach(s => s.style.display = '');
+      else document.getElementById(section + '-section').style.display = '';
+    });
+  });
+
+  // Initial load
+  await loadAllAnalytics();
+
+  // Start auto-refresh
+  refreshInterval = setInterval(loadAllAnalytics, 60000);
+});
+</script>
+{% endblock %}
+

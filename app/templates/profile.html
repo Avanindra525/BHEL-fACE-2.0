@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% block title %}Profile | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="profileSidebar">
+    <div class="sidebar-header">
+      <a href="/dashboard" class="text-white text-decoration-none">
+        <h5 class="fw-bold mb-0"><i class="fa-solid fa-fingerprint me-2"></i>FaceAuth</h5>
+      </a>
+      <small class="text-white-50">Employee Workspace</small>
+    </div>
+    <nav>
+      <div class="nav-section-title">Main</div>
+      <a href="/dashboard" class="nav-link"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+      <a href="/profile" class="nav-link active"><i class="fa-solid fa-user"></i> Profile</a>
+      <a href="/face-registration" class="nav-link"><i class="fa-solid fa-camera"></i> Face Registration</a>
+      <a href="/login-history" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Login History</a>
+      <a href="/settings" class="nav-link"><i class="fa-solid fa-gear"></i> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-link" onclick="Auth.logout(); return false;">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div>
+        <h5 class="fw-bold mb-0">My Profile</h5>
+        <small class="text-muted">Manage your enterprise identity</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <a href="/dashboard" class="btn btn-outline-primary btn-sm">
+          <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
+        </a>
+      </div>
+    </nav>
+
+    <div class="page-content">
+      <div class="row g-4">
+        <!-- Profile Card -->
+        <div class="col-lg-4">
+          <div class="card border-0 shadow-sm text-center p-4">
+            <div class="avatar-badge mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+              <i class="fa-solid fa-user" id="profileAvatarIcon"></i>
+            </div>
+            <h4 class="fw-bold mb-1" id="profileName">Loading...</h4>
+            <p class="text-muted small mb-2" id="profileRole">--</p>
+            <div class="mb-3">
+              <span class="badge bg-soft-primary" id="profileStatus">Active</span>
+              <span class="badge bg-soft-success" id="profileFaceStatus">--</span>
+            </div>
+            <hr />
+            <div class="text-start small">
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Staff Number</span>
+                <span class="fw-semibold" id="profileStaffNumber">--</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Department</span>
+                <span class="fw-semibold" id="profileDepartment">--</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Member Since</span>
+                <span class="fw-semibold" id="profileCreated">--</span>
+              </div>
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">Last Updated</span>
+                <span class="fw-semibold" id="profileUpdated">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Profile Form -->
+        <div class="col-lg-8">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-3 px-4">
+              <h6 class="fw-bold mb-0"><i class="fa-solid fa-user-pen text-primary me-2"></i>Edit Profile</h6>
+            </div>
+            <div class="card-body px-4 pb-4">
+              <form id="profileForm" data-validate-form>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Full name</label>
+                    <input type="text" class="form-control" id="editFullName" data-validate="required|min:2|max:200" />
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Email address</label>
+                    <input type="email" class="form-control" id="editEmail" data-validate="required|email" />
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Staff number</label>
+                    <input type="text" class="form-control" id="editStaffNumber" disabled />
+                    <small class="form-text">Staff number cannot be changed.</small>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" id="editUsername" disabled />
+                    <small class="form-text">Username cannot be changed.</small>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Bio / About</label>
+                    <textarea class="form-control" id="editBio" rows="3" placeholder="Tell us about yourself..."></textarea>
+                  </div>
+                </div>
+                <div class="d-flex gap-2 mt-4">
+                  <button type="submit" class="btn btn-primary" id="saveProfileBtn">
+                    <i class="fa-solid fa-floppy-disk me-2"></i>Save Changes
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Change Password -->
+          <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white border-0 pt-3 px-4">
+              <h6 class="fw-bold mb-0"><i class="fa-solid fa-lock text-primary me-2"></i>Change Password</h6>
+            </div>
+            <div class="card-body px-4 pb-4">
+              <form id="passwordForm" data-validate-form>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <label class="form-label">Current password</label>
+                    <input type="password" class="form-control" id="currentPassword" data-validate="required" />
+                    <div class="invalid-feedback"></div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">New password</label>
+                    <input type="password" class="form-control" id="newPassword" data-validate="required|password" />
+                    <div class="invalid-feedback"></div>
+                    <small class="form-text">Min 8 chars, uppercase, lowercase, number.</small>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Confirm new password</label>
+                    <input type="password" class="form-control" id="confirmPassword" data-validate="required|match:newPassword:new password" />
+                    <div class="invalid-feedback"></div>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-outline-primary mt-3" id="changePasswordBtn">
+                  <i class="fa-solid fa-key me-2"></i>Update Password
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+function toggleSidebar() {
+  document.getElementById('profileSidebar')?.classList.toggle('open');
+  document.querySelector('.sidebar-overlay')?.classList.toggle('show');
+}
+
+async function loadProfile() {
+  try {
+    const profile = await API.get('/profile');
+
+    document.getElementById('profileName').textContent = profile.full_name || '--';
+    document.getElementById('profileRole').textContent = profile.role || 'Employee';
+    document.getElementById('profileStaffNumber').textContent = profile.staff_number || 'Not assigned';
+    document.getElementById('profileDepartment').textContent = profile.department || 'Unassigned';
+    document.getElementById('profileCreated').textContent = profile.created_at ? new Date(profile.created_at).toLocaleDateString() : '--';
+    document.getElementById('profileUpdated').textContent = profile.updated_at ? new Date(profile.updated_at).toLocaleDateString() : '--';
+
+    const faceStatus = document.getElementById('profileFaceStatus');
+    if (profile.face_registered || profile.face_registered === 'Y') {
+      faceStatus.textContent = 'Face Registered';
+      faceStatus.className = 'badge bg-soft-success';
+    } else {
+      faceStatus.textContent = 'Face Not Set';
+      faceStatus.className = 'badge bg-soft-warning';
+    }
+
+    // Populate form
+    document.getElementById('editFullName').value = profile.full_name || '';
+    document.getElementById('editEmail').value = profile.email || '';
+    document.getElementById('editStaffNumber').value = profile.staff_number || '';
+    document.getElementById('editUsername').value = profile.username || '';
+    document.getElementById('editBio').value = profile.bio || '';
+
+  } catch (err) {
+    Toast.error('Failed to load profile: ' + err.message);
+  }
+}
+
+// Save Profile
+document.getElementById('profileForm')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  if (!Validator.validateForm(this)) return;
+
+  const btn = document.getElementById('saveProfileBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner spinner me-2"></i>Saving...';
+
+  try {
+    const payload = {
+      full_name: document.getElementById('editFullName').value.trim(),
+      email: document.getElementById('editEmail').value.trim(),
+      bio: document.getElementById('editBio').value.trim() || null,
+    };
+    await API.put('/profile', payload);
+    Toast.success('Profile updated successfully!');
+    loadProfile();
+  } catch (err) {
+    Toast.error(err.message || 'Failed to update profile');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save Changes';
+  }
+});
+
+// Change Password
+document.getElementById('passwordForm')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  if (!Validator.validateForm(this)) return;
+
+  const btn = document.getElementById('changePasswordBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner spinner me-2"></i>Updating...';
+
+  try {
+    const payload = {
+      current_password: document.getElementById('currentPassword').value,
+      new_password: document.getElementById('newPassword').value,
+      confirm_password: document.getElementById('confirmPassword').value,
+    };
+    await API.put('/profile/change-password', payload);
+    Toast.success('Password changed successfully!');
+    this.reset();
+  } catch (err) {
+    Toast.error(err.message || 'Failed to change password');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-key me-2"></i>Update Password';
+  }
+});
+
+document.addEventListener('DOMContentLoaded', loadProfile);
+</script>
+{% endblock %}
+

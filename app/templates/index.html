@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}FaceAuth Enterprise — Secure Facial Authentication{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block content %}
+<!-- Hero Section -->
+<section class="position-relative overflow-hidden hero-section" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);">
+  <div class="container position-relative" style="z-index: 2;">
+    <div class="row align-items-center g-4 g-lg-5 min-vh-50 py-5">
+      <div class="col-lg-7 text-white">
+        <div class="badge bg-white text-primary fs-6 px-3 py-2 mb-3 rounded-pill">
+          <i class="fa-solid fa-shield-halved me-2"></i>Enterprise Grade Security
+        </div>
+        <h1 class="display-4 fw-bold mb-3 lh-1.2">
+          Enterprise facial authentication<br />
+          <span class="text-warning">for modern teams.</span>
+        </h1>
+        <p class="lead mb-4 text-white-50 fs-5" style="max-width: 540px;">
+          Secure employee registration, biometric login, role-based administration, 
+          audit trails, and analytics combined into one scalable platform.
+        </p>
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="/register" class="btn btn-light btn-lg text-primary fw-bold px-4">
+            <i class="fa-solid fa-rocket me-2"></i>Get Started
+          </a>
+          <a href="/login" class="btn btn-outline-light btn-lg px-4">
+            <i class="fa-solid fa-sign-in-alt me-2"></i>Sign In
+          </a>
+        </div>
+        <div class="d-flex gap-4 mt-4 text-white-50 small flex-wrap">
+          <span><i class="fa-solid fa-check-circle text-success me-1"></i>Oracle 19c</span>
+          <span><i class="fa-solid fa-check-circle text-success me-1"></i>RBAC</span>
+          <span><i class="fa-solid fa-check-circle text-success me-1"></i>Face Recognition</span>
+          <span><i class="fa-solid fa-check-circle text-success me-1"></i>Audit Trail</span>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="card card-glass shadow-lg border-0 rounded-4 highlight-card">
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="avatar-badge"><i class="fa-solid fa-fingerprint"></i></div>
+              <div>
+                <h5 class="fw-bold mb-0">Platform Highlights</h5>
+                <small class="text-muted">What makes us different</small>
+              </div>
+            </div>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item d-flex align-items-center gap-3 px-0">
+                <i class="fa-solid fa-database text-primary fa-fw"></i>
+                <span>Oracle 19c ready architecture</span>
+              </li>
+              <li class="list-group-item d-flex align-items-center gap-3 px-0">
+                <i class="fa-solid fa-key text-primary fa-fw"></i>
+                <span>JWT, refresh tokens, and RBAC</span>
+              </li>
+              <li class="list-group-item d-flex align-items-center gap-3 px-0">
+                <i class="fa-solid fa-camera text-primary fa-fw"></i>
+                <span>Face registration and recognition workflow</span>
+              </li>
+              <li class="list-group-item d-flex align-items-center gap-3 px-0">
+                <i class="fa-solid fa-chart-line text-primary fa-fw"></i>
+                <span>Admin dashboards and audit logging</span>
+              </li>
+              <li class="list-group-item d-flex align-items-center gap-3 px-0">
+                <i class="fa-solid fa-shield text-primary fa-fw"></i>
+                <span>SCRFD + ArcFace + Liveness Detection</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Decorative background shapes -->
+  <div class="position-absolute top-0 end-0 w-50 h-100 opacity-10" style="background: radial-gradient(circle at 70% 30%, white 0%, transparent 60%);"></div>
+  <div class="position-absolute bottom-0 start-0 w-25 h-25 opacity-10" style="background: radial-gradient(circle at 30% 70%, white 0%, transparent 60%);"></div>
+</section>
+
+<!-- Features Section -->
+<section class="container py-5">
+  <div class="text-center mb-5">
+    <span class="badge bg-soft-primary px-3 py-2 mb-2">Features</span>
+    <h2 class="fw-bold display-6 mb-2">Everything you need for enterprise auth</h2>
+    <p class="text-muted fs-5">A complete biometric authentication platform built for scale.</p>
+  </div>
+  <div class="row g-4">
+    <div class="col-md-6 col-lg-4">
+      <div class="card border-0 shadow-sm h-100 p-4 feature-card">
+        <div class="stat-icon bg-primary bg-opacity-10 text-primary mb-3">
+          <i class="fa-solid fa-camera"></i>
+        </div>
+        <h5 class="fw-bold">Face Recognition</h5>
+        <p class="text-muted small mb-0">SCRFD face detection with ArcFace embeddings for high-accuracy biometric matching.</p>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card border-0 shadow-sm h-100 p-4 feature-card">
+        <div class="stat-icon bg-success bg-opacity-10 text-success mb-3">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h5 class="fw-bold">Liveness Detection</h5>
+        <p class="text-muted small mb-0">Anti-spoofing protection ensures real faces only — no photos or videos accepted.</p>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card border-0 shadow-sm h-100 p-4 feature-card">
+        <div class="stat-icon bg-warning bg-opacity-10 text-warning mb-3">
+          <i class="fa-solid fa-user-lock"></i>
+        </div>
+        <h5 class="fw-bold">Role-Based Access</h5>
+        <p class="text-muted small mb-0">Granular permissions and role management with full audit trail for compliance.</p>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card border-0 shadow-sm h-100 p-4 feature-card">
+        <div class="stat-icon bg-info bg-opacity-10 text-info mb-3">
+          <i class="fa-solid fa-chart-simple"></i>
+        </div>
+        <h5 class="fw-bold">Analytics Dashboard</h5>
+        <p class="text-muted small mb-0">Real-time metrics, login trends, department statistics with Chart.js visualizations.</p>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card border-0 shadow-sm h-100 p-4 feature-card">
+        <div class="stat-icon bg-danger bg-opacity-10 text-danger mb-3">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+        <h5 class="fw-bold">Audit Logging</h5>
+        <p class="text-muted small mb-0">Complete event history with user, action, and timestamp for security reviews.</p>
+      </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+      <div class="card border-0 shadow-sm h-100 p-4 feature-card">
+        <div class="stat-icon bg-primary bg-opacity-10 text-primary mb-3">
+          <i class="fa-solid fa-database"></i>
+        </div>
+        <h5 class="fw-bold">Oracle 19c</h5>
+        <p class="text-muted small mb-0">Enterprise-grade persistence with Oracle Database, sequences, and optimized queries.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats Section -->
+<section class="bg-white py-5 border-top">
+  <div class="container">
+    <div class="row g-4 text-center">
+      <div class="col-6 col-md-3">
+        <h2 class="fw-bold text-primary display-5">10+</h2>
+        <p class="text-muted mb-0">Database Models</p>
+      </div>
+      <div class="col-6 col-md-3">
+        <h2 class="fw-bold text-primary display-5">20+</h2>
+        <p class="text-muted mb-0">API Endpoints</p>
+      </div>
+      <div class="col-6 col-md-3">
+        <h2 class="fw-bold text-primary display-5">512</h2>
+        <p class="text-muted mb-0">Embedding Dimensions</p>
+      </div>
+      <div class="col-6 col-md-3">
+        <h2 class="fw-bold text-primary display-5">99.9%</h2>
+        <p class="text-muted mb-0">Uptime SLA</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Section -->
+<section class="container py-5">
+  <div class="card border-0 shadow-lg rounded-4 cta-card" style="background: linear-gradient(135deg, #1e3a8a, #2563eb);">
+    <div class="card-body p-5 text-center text-white">
+      <h2 class="fw-bold mb-3">Ready to secure your organization?</h2>
+      <p class="lead mb-4 text-white-50">Deploy FaceAuth Enterprise and transform your authentication workflow.</p>
+      <div class="d-flex justify-content-center gap-3 flex-wrap">
+        <a href="/register" class="btn btn-light btn-lg text-primary fw-bold px-5">
+          <i class="fa-solid fa-rocket me-2"></i>Get Started
+        </a>
+        <a href="/docs" class="btn btn-outline-light btn-lg px-5">
+          <i class="fa-solid fa-book me-2"></i>Documentation
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

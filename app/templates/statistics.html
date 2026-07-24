@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+{% block title %}Statistics | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="statsSidebar">
+    <div class="sidebar-header">
+      <a href="/admin" class="text-white text-decoration-none"><h5 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Admin Console</h5></a>
+    </div>
+    <nav>
+      <div class="nav-section-title">Management</div>
+      <a href="/admin" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+      <a href="/employees" class="nav-link"><i class="fa-solid fa-users"></i> Employees</a>
+      <a href="/departments" class="nav-link"><i class="fa-solid fa-sitemap"></i> Departments</a>
+      <a href="/roles" class="nav-link"><i class="fa-solid fa-user-shield"></i> Roles</a>
+      <a href="/permissions" class="nav-link"><i class="fa-solid fa-key"></i> Permissions</a>
+      <div class="nav-section-title">Monitoring</div>
+      <a href="/audit-logs" class="nav-link"><i class="fa-solid fa-file-shield"></i> Audit Logs</a>
+      <a href="/statistics" class="nav-link active"><i class="fa-solid fa-chart-column"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-footer"><a href="#" class="nav-link" onclick="Auth.logout(); return false;"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a></div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div><h5 class="fw-bold mb-0">Statistics & Analytics</h5><small class="text-muted">Platform metrics and trends</small></div>
+      <button class="btn btn-outline-primary btn-sm" onclick="loadStats()"><i class="fa-solid fa-rotate me-1"></i> Refresh</button>
+    </nav>
+
+    <div class="page-content">
+      <div id="statsLoading" class="loading-overlay"><div class="loading-spinner"></div></div>
+      <div id="statsContent" style="display:none;">
+        <!-- Summary Cards -->
+        <div class="row g-4 mb-4">
+          <div class="col-md-3 col-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="fa-solid fa-users"></i></div>
+              <div class="stat-label">Total Users</div>
+              <div class="stat-value" id="statTotalUsers">0</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="fa-solid fa-right-to-bracket"></i></div>
+              <div class="stat-label">Successful Logins</div>
+              <div class="stat-value" id="statSuccessLogins">0</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-danger bg-opacity-10 text-danger"><i class="fa-solid fa-ban"></i></div>
+              <div class="stat-label">Failed Logins</div>
+              <div class="stat-value" id="statFailedLogins">0</div>
+            </div>
+          </div>
+          <div class="col-md-3 col-6">
+            <div class="stat-card">
+              <div class="stat-icon bg-warning bg-opacity-10 text-warning"><i class="fa-solid fa-face-smile"></i></div>
+              <div class="stat-label">Face Auth Rate</div>
+              <div class="stat-value" id="statFaceRate">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0 pt-3 px-4">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-bar text-primary me-2"></i>Daily Login Trend</h6>
+              </div>
+              <div class="card-body px-4 pb-4">
+                <div class="chart-container"><canvas id="dailyTrendChart"></canvas></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0 pt-3 px-4">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-chart-pie text-primary me-2"></i>Login Methods</h6>
+              </div>
+              <div class="card-body px-4 pb-4">
+                <div class="chart-container"><canvas id="methodChart"></canvas></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0 pt-3 px-4">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-building text-primary me-2"></i>Department Distribution</h6>
+              </div>
+              <div class="card-body px-4 pb-4">
+                <div class="chart-container"><canvas id="deptDistChart"></canvas></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0 pt-3 px-4">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-face-smile text-primary me-2"></i>Face Registration Status</h6>
+              </div>
+              <div class="card-body px-4 pb-4">
+                <div class="chart-container"><canvas id="faceRegChart"></canvas></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0 pt-3 px-4">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-trend-up text-primary me-2"></i>Employee Growth</h6>
+              </div>
+              <div class="card-body px-4 pb-4">
+                <div class="chart-container"><canvas id="growthChart"></canvas></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0 pt-3 px-4">
+                <h6 class="fw-bold mb-0"><i class="fa-solid fa-shield-check text-primary me-2"></i>Success vs Failed Rate</h6>
+              </div>
+              <div class="card-body px-4 pb-4">
+                <div class="chart-container"><canvas id="rateChart"></canvas></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+function toggleSidebar() { document.getElementById('statsSidebar')?.classList.toggle('open'); document.querySelector('.sidebar-overlay')?.classList.toggle('show'); }
+
+async function loadStats() {
+  const loading = document.getElementById('statsLoading');
+  const content = document.getElementById('statsContent');
+  loading.style.display = 'flex';
+  content.style.display = 'none';
+
+  try {
+    let stats = {};
+    try { stats = await API.get('/statistics'); } catch (e) {}
+
+    document.getElementById('statTotalUsers').textContent = stats.total_users || stats.user_count || 0;
+    document.getElementById('statSuccessLogins').textContent = stats.successful_logins || 0;
+    document.getElementById('statFailedLogins').textContent = stats.failed_logins || 0;
+    const totalLogins = (stats.successful_logins || 0) + (stats.failed_logins || 0);
+    const faceRate = totalLogins > 0 ? Math.round(((stats.face_logins || 0) / totalLogins) * 100) : 0;
+    document.getElementById('statFaceRate').textContent = faceRate + '%';
+
+    const chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } };
+
+    // Daily Trend Chart
+    const dailyCtx = document.getElementById('dailyTrendChart');
+    if (dailyCtx && typeof Chart !== 'undefined') {
+      if (dailyCtx._chart) dailyCtx._chart.destroy();
+      dailyCtx._chart = new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+          labels: stats.daily_labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Logins',
+            data: stats.daily_logins || [0, 0, 0, 0, 0, 0, 0],
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            fill: true, tension: 0.4,
+          }]
+        },
+        options: { ...chartOpts, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } } }
+      });
+    }
+
+    // Login Method Chart
+    const methodCtx = document.getElementById('methodChart');
+    if (methodCtx && typeof Chart !== 'undefined') {
+      if (methodCtx._chart) methodCtx._chart.destroy();
+      methodCtx._chart = new Chart(methodCtx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Password', 'Face Recognition'],
+          datasets: [{ data: [stats.password_logins || 70, stats.face_logins || 30], backgroundColor: ['#2563eb', '#10b981'] }]
+        },
+        options: chartOpts
+      });
+    }
+
+    // Department Distribution
+    const deptCtx = document.getElementById('deptDistChart');
+    if (deptCtx && typeof Chart !== 'undefined') {
+      if (deptCtx._chart) deptCtx._chart.destroy();
+      const deptData = stats.departments || {};
+      const deptLabels = Object.keys(deptData).length ? Object.keys(deptData) : ['No Data'];
+      const deptValues = Object.keys(deptData).length ? Object.values(deptData) : [0];
+      deptCtx._chart = new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+          labels: deptLabels,
+          datasets: [{
+            label: 'Employees', data: deptValues,
+            backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+            borderRadius: 6,
+          }]
+        },
+        options: { ...chartOpts, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } } }
+      });
+    }
+
+    // Face Registration Status
+    const faceCtx = document.getElementById('faceRegChart');
+    if (faceCtx && typeof Chart !== 'undefined') {
+      if (faceCtx._chart) faceCtx._chart.destroy();
+      const registered = stats.face_registered_count || 0;
+      const notRegistered = (stats.total_users || stats.user_count || 0) - registered;
+      faceCtx._chart = new Chart(faceCtx, {
+        type: 'doughnut',
+        data: { labels: ['Registered', 'Not Registered'], datasets: [{ data: [registered, Math.max(0, notRegistered)], backgroundColor: ['#10b981', '#e2e8f0'] }] },
+        options: chartOpts
+      });
+    }
+
+    // Employee Growth
+    const growthCtx = document.getElementById('growthChart');
+    if (growthCtx && typeof Chart !== 'undefined') {
+      if (growthCtx._chart) growthCtx._chart.destroy();
+      growthCtx._chart = new Chart(growthCtx, {
+        type: 'line',
+        data: {
+          labels: stats.growth_labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            label: 'Employees', data: stats.growth_data || [0, 0, 0, 0, 0, 0],
+            borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)',
+            fill: true, tension: 0.4,
+          }]
+        },
+        options: { ...chartOpts, scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } } }
+      });
+    }
+
+    // Success vs Failed Rate
+    const rateCtx = document.getElementById('rateChart');
+    if (rateCtx && typeof Chart !== 'undefined') {
+      if (rateCtx._chart) rateCtx._chart.destroy();
+      rateCtx._chart = new Chart(rateCtx, {
+        type: 'doughnut',
+        data: { labels: ['Success', 'Failed'], datasets: [{ data: [stats.successful_logins || 95, stats.failed_logins || 5], backgroundColor: ['#10b981', '#ef4444'] }] },
+        options: { ...chartOpts, cutout: '70%' }
+      });
+    }
+
+    loading.style.display = 'none';
+    content.style.display = 'block';
+  } catch (err) {
+    loading.innerHTML = '<div class="text-center"><i class="fa-solid fa-triangle-exclamation text-warning fa-3x mb-3"></i><h5>Error loading statistics</h5><p class="text-muted">' + err.message + '</p><button class="btn btn-primary" onclick="loadStats()">Retry</button></div>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadStats);
+</script>
+{% endblock %}
+

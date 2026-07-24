@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}About | FaceAuth Enterprise{% endblock %}
+{% block content %}
+<section class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="text-center mb-5">
+        <span class="badge bg-soft-primary px-3 py-2 mb-2">About Us</span>
+        <h1 class="fw-bold display-5 mb-3">Enterprise biometric access<br />reimagined.</h1>
+        <p class="lead text-muted">FaceAuth Enterprise combines secure authentication, role-based administration, and biometric recognition in a single enterprise platform built on Oracle 19c.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-5">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100 p-4">
+        <h4 class="fw-bold"><i class="fa-solid fa-bullseye text-primary me-2"></i>Our Mission</h4>
+        <p class="text-muted mb-0">To provide organizations with a secure, scalable, and user-friendly facial authentication platform that eliminates password-related security risks while improving employee experience.</p>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm h-100 p-4">
+        <h4 class="fw-bold"><i class="fa-solid fa-eye text-primary me-2"></i>Our Vision</h4>
+        <p class="text-muted mb-0">A world where biometric authentication is the standard for enterprise security — seamless, accurate, and trusted by organizations globally.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3 class="fw-bold mb-4">Technology Stack</h3>
+  <div class="row g-3 mb-5">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon bg-primary bg-opacity-10 text-primary" style="width:44px;height:44px;">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0">FastAPI</h6>
+            <small class="text-muted">Python 3.12+</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon bg-success bg-opacity-10 text-success" style="width:44px;height:44px;">
+            <i class="fa-solid fa-database"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0">Oracle 19c</h6>
+            <small class="text-muted">Enterprise Database</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon bg-warning bg-opacity-10 text-warning" style="width:44px;height:44px;">
+            <i class="fa-solid fa-brain"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0">InsightFace</h6>
+            <small class="text-muted">ArcFace + SCRFD</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon bg-info bg-opacity-10 text-info" style="width:44px;height:44px;">
+            <i class="fa-solid fa-laptop-code"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0">Bootstrap 5</h6>
+            <small class="text-muted">Responsive UI</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon bg-danger bg-opacity-10 text-danger" style="width:44px;height:44px;">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0">JWT + bcrypt</h6>
+            <small class="text-muted">Secure Auth</small>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 p-3">
+        <div class="d-flex align-items-center gap-3">
+          <div class="stat-icon bg-primary bg-opacity-10 text-primary" style="width:44px;height:44px;">
+            <i class="fa-solid fa-chart-simple"></i>
+          </div>
+          <div>
+            <h6 class="fw-bold mb-0">Chart.js</h6>
+            <small class="text-muted">Analytics</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm p-4">
+    <h4 class="fw-bold mb-3">Key Features</h4>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <ul class="list-unstyled">
+          <li class="mb-2"><i class="fa-solid fa-check-circle text-success me-2"></i>SCRFD face detection</li>
+          <li class="mb-2"><i class="fa-solid fa-check-circle text-success me-2"></i>ArcFace 512-dim embeddings</li>
+          <li class="mb-2"><i class="fa-solid fa-check-circle text-success me-2"></i>Liveness detection (anti-spoofing)</li>
+          <li class="mb-2"><i class="fa-solid fa-check-circle text-success me-2"></i>Multi-pose face registration</li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <ul class="list-unstyled">
+          <li class="mb-2"><i class="fa-solid fa-check-circle text-success me-2"></i>Role-based access control</li>
+          <li class="mb-2"><i class="fa-solid fa-check-circle text-success me-2"></i>JWT + refresh token rotation</li>
+          <li class="mb-2"><i class="fa-solid fa-check-circle text-success me-2"></i>Complete audit logging</li>
+          <li class="mb-2"><i class="fa-solid fa-check-circle text-success me-2"></i>Oracle 19c persistence</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

@@ -1,0 +1,376 @@
+{% extends "base.html" %}
+{% block title %}Employee Management | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="empSidebar">
+    <div class="sidebar-header">
+      <a href="/admin" class="text-white text-decoration-none">
+        <h5 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved me-2"></i>Admin Console</h5>
+      </a>
+    </div>
+    <nav>
+      <div class="nav-section-title">Management</div>
+      <a href="/admin" class="nav-link"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+      <a href="/employees" class="nav-link active"><i class="fa-solid fa-users"></i> Employees</a>
+      <a href="/departments" class="nav-link"><i class="fa-solid fa-sitemap"></i> Departments</a>
+      <a href="/roles" class="nav-link"><i class="fa-solid fa-user-shield"></i> Roles</a>
+      <a href="/permissions" class="nav-link"><i class="fa-solid fa-key"></i> Permissions</a>
+      <div class="nav-section-title">Monitoring</div>
+      <a href="/audit-logs" class="nav-link"><i class="fa-solid fa-file-shield"></i> Audit Logs</a>
+      <a href="/statistics" class="nav-link"><i class="fa-solid fa-chart-column"></i> Statistics</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-link" onclick="Auth.logout(); return false;"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a>
+    </div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div><h5 class="fw-bold mb-0">Employee Management</h5><small class="text-muted">Manage all employee accounts</small></div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary btn-sm" onclick="openAddEmployeeModal()"><i class="fa-solid fa-plus me-1"></i>Add Employee</button>
+        <button class="btn btn-outline-primary btn-sm" onclick="loadEmployees()"><i class="fa-solid fa-rotate me-1"></i>Refresh</button>
+      </div>
+    </nav>
+
+    <div class="page-content">
+      <!-- Filters -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body px-4 py-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+              <label class="form-label small">Search</label>
+              <input type="text" class="form-control form-control-sm" id="searchEmployee" placeholder="Name, email, staff #" oninput="filterEmployees()" />
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Department</label>
+              <select class="form-select form-select-sm" id="filterDept" onchange="filterEmployees()"><option value="">All</option></select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Status</label>
+              <select class="form-select form-select-sm" id="filterStatus" onchange="filterEmployees()">
+                <option value="">All</option>
+                <option value="Y">Active</option>
+                <option value="N">Inactive</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small">Face</label>
+              <select class="form-select form-select-sm" id="filterFace" onchange="filterEmployees()">
+                <option value="">All</option>
+                <option value="Y">Registered</option>
+                <option value="N">Not Registered</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+              <button class="btn btn-primary btn-sm flex-grow-1" onclick="filterEmployees()"><i class="fa-solid fa-search me-1"></i>Search</button>
+              <button class="btn btn-outline-secondary btn-sm" onclick="resetFilters()">Reset</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-body px-4 pb-4">
+          <div id="empLoading" class="loading-overlay"><div class="loading-spinner"></div></div>
+          <div id="empContent">
+            <div class="table-container">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Staff #</th>
+                    <th>Department</th>
+                    <th>Role</th>
+                    <th>Face</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="employeeBody"><tr><td colspan="8" class="text-center text-muted py-4">Loading...</td></tr></tbody>
+              </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <small class="text-muted" id="empCount">Showing 0 entries</small>
+              <nav><ul class="pagination pagination-sm mb-0" id="empPagination"></ul></nav>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add Employee Modal -->
+<div class="modal fade" id="addEmployeeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus text-primary me-2"></i>Add Employee</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addEmployeeForm" data-validate-form>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Full name</label>
+              <input type="text" class="form-control" id="empName" data-validate="required|min:2" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" id="empUsername" data-validate="required|username|min:3" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" id="empEmail" data-validate="required|email" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Staff number</label>
+              <input type="text" class="form-control" id="empStaffNumber" placeholder="EMP-001" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-control" id="empPassword" data-validate="required|password" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Department</label>
+              <select class="form-select" id="empDepartment"><option value="">None</option></select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="saveEmpBtn" onclick="createEmployee()"><i class="fa-solid fa-floppy-disk me-2"></i>Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Employee Modal -->
+<div class="modal fade" id="editEmployeeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-pen text-primary me-2"></i>Edit Employee</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editEmployeeForm">
+          <input type="hidden" id="editEmpId" />
+          <div class="row g-3">
+            <div class="col-md-6"><label class="form-label">Full name</label><input type="text" class="form-control" id="editEmpName" /></div>
+            <div class="col-md-6"><label class="form-label">Email</label><input type="email" class="form-control" id="editEmpEmail" /></div>
+            <div class="col-md-6"><label class="form-label">Department</label><select class="form-select" id="editEmpDept"><option value="">None</option></select></div>
+            <div class="col-md-3"><label class="form-label">Active</label><select class="form-select" id="editEmpActive"><option value="Y">Yes</option><option value="N">No</option></select></div>
+            <div class="col-md-3"><label class="form-label">Locked</label><select class="form-select" id="editEmpLocked"><option value="N">No</option><option value="Y">Yes</option></select></div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="updateEmpBtn" onclick="updateEmployee()"><i class="fa-solid fa-floppy-disk me-2"></i>Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let allEmployees = [];
+let filteredEmployees = [];
+let currentEmpPage = 1;
+const empPageSize = 15;
+
+function toggleSidebar() { document.getElementById('empSidebar')?.classList.toggle('open'); document.querySelector('.sidebar-overlay')?.classList.toggle('show'); }
+
+async function loadEmployees() {
+  const loading = document.getElementById('empLoading');
+  const tbody = document.getElementById('employeeBody');
+  loading.style.display = 'flex';
+  tbody.innerHTML = '<tr><td colspan="8" class="text-center py-3"><div class="loading-spinner"></div></td></tr>';
+  try {
+    allEmployees = await API.get('/employees');
+    document.getElementById('empCount').textContent = `Total: ${allEmployees.length} employees`;
+    // Populate department filter
+    const depts = [...new Set(allEmployees.map(e => e.department).filter(Boolean))];
+    const filterDept = document.getElementById('filterDept');
+    filterDept.innerHTML = '<option value="">All</option>' + depts.map(d => `<option value="${d}">${d}</option>`).join('');
+    filterEmployees();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">Error: ${err.message}</td></tr>`;
+  } finally { loading.style.display = 'none'; }
+}
+
+function filterEmployees() {
+  const search = document.getElementById('searchEmployee').value.toLowerCase();
+  const dept = document.getElementById('filterDept').value;
+  const status = document.getElementById('filterStatus').value;
+  const face = document.getElementById('filterFace').value;
+  filteredEmployees = allEmployees.filter(e => {
+    if (search && !e.full_name?.toLowerCase().includes(search) && !e.email?.toLowerCase().includes(search) && !(e.staff_number || '').toLowerCase().includes(search)) return false;
+    if (dept && e.department !== dept) return false;
+    if (status && e.is_active !== status && e.is_active !== (status === 'Y')) return false;
+    if (face && e.face_registered !== face && e.face_registered !== (face === 'Y')) return false;
+    return true;
+  });
+  currentEmpPage = 1;
+  renderEmpTable();
+}
+
+function resetFilters() {
+  document.getElementById('searchEmployee').value = '';
+  document.getElementById('filterDept').value = '';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterFace').value = '';
+  filterEmployees();
+}
+
+function renderEmpTable() {
+  const tbody = document.getElementById('employeeBody');
+  const start = (currentEmpPage - 1) * empPageSize;
+  const end = Math.min(start + empPageSize, filteredEmployees.length);
+  const page = filteredEmployees.slice(start, end);
+  if (page.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No employees found.</td></tr>';
+    document.getElementById('empCount').textContent = 'Showing 0 entries';
+    return;
+  }
+  tbody.innerHTML = page.map(e => `
+    <tr>
+      <td><span class="fw-semibold">${e.full_name || '--'}</span></td>
+      <td class="small">${e.email || '--'}</td>
+      <td class="small">${e.staff_number || '--'}</td>
+      <td>${e.department ? `<span class="badge bg-soft-primary">${e.department}</span>` : '<span class="text-muted">Unassigned</span>'}</td>
+      <td>${e.role || '<span class="text-muted">--</span>'}</td>
+      <td>${(e.face_registered === 'Y' || e.face_registered === true) ? '<i class="fa-solid fa-circle-check text-success"></i>' : '<i class="fa-solid fa-circle-xmark text-muted"></i>'}</td>
+      <td>${(e.is_active === 'Y' || e.is_active === true) ? '<span class="badge bg-soft-success">Active</span>' : '<span class="badge bg-soft-danger">Inactive</span>'}</td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-primary" onclick="openEditEmployee(${e.user_id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-sm btn-outline-${(e.is_active === 'Y' || e.is_active === true) ? 'warning' : 'success'}" onclick="toggleEmployeeStatus(${e.user_id})" title="${(e.is_active === 'Y' || e.is_active === true) ? 'Disable' : 'Enable'}">
+          <i class="fa-solid fa-${(e.is_active === 'Y' || e.is_active === true) ? 'ban' : 'check'}"></i>
+        </button>
+        ${Auth.getUser()?.username !== e.username ? `<button class="btn btn-sm btn-outline-danger" onclick="deleteEmployee(${e.user_id})" title="Delete"><i class="fa-solid fa-trash"></i></button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+  document.getElementById('empCount').textContent = `Showing ${start + 1}–${end} of ${filteredEmployees.length} entries`;
+  // Pagination
+  const totalPages = Math.ceil(filteredEmployees.length / empPageSize);
+  const pagination = document.getElementById('empPagination');
+  if (totalPages <= 1) { pagination.innerHTML = ''; return; }
+  let p = '';
+  if (currentEmpPage > 1) p += `<li class="page-item"><a class="page-link" href="#" onclick="changeEmpPage(${currentEmpPage - 1}); return false;">Prev</a></li>`;
+  for (let i = Math.max(1, currentEmpPage - 2); i <= Math.min(totalPages, currentEmpPage + 2); i++)
+    p += `<li class="page-item ${i === currentEmpPage ? 'active' : ''}"><a class="page-link" href="#" onclick="changeEmpPage(${i}); return false;">${i}</a></li>`;
+  if (currentEmpPage < totalPages) p += `<li class="page-item"><a class="page-link" href="#" onclick="changeEmpPage(${currentEmpPage + 1}); return false;">Next</a></li>`;
+  pagination.innerHTML = p;
+}
+
+function changeEmpPage(page) { currentEmpPage = page; renderEmpTable(); }
+
+// Add Employee
+async function openAddEmployeeModal() {
+  try {
+    const depts = await API.get('/departments');
+    const select = document.getElementById('empDepartment');
+    select.innerHTML = '<option value="">None</option>' + depts.map(d => `<option value="${d.department_id}">${d.name}</option>`).join('');
+  } catch (e) {}
+  new bootstrap.Modal(document.getElementById('addEmployeeModal')).show();
+}
+
+async function createEmployee() {
+  const form = document.getElementById('addEmployeeForm');
+  if (!Validator.validateForm(form)) return;
+  const btn = document.getElementById('saveEmpBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner spinner me-2"></i>Saving...';
+  try {
+    const payload = {
+      username: document.getElementById('empUsername').value.trim(),
+      email: document.getElementById('empEmail').value.trim(),
+      full_name: document.getElementById('empName').value.trim(),
+      password: document.getElementById('empPassword').value,
+      staff_number: document.getElementById('empStaffNumber').value.trim() || null,
+      department_id: parseInt(document.getElementById('empDepartment').value) || null,
+      profile_completed: true,
+    };
+    await API.post('/employees', payload);
+    Toast.success('Employee created successfully!');
+    bootstrap.Modal.getInstance(document.getElementById('addEmployeeModal')).hide();
+    form.reset();
+    loadEmployees();
+  } catch (err) { Toast.error(err.message || 'Failed to create employee'); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save'; }
+}
+
+// Edit Employee
+async function openEditEmployee(id) {
+  try {
+    const depts = await API.get('/departments');
+    const emp = allEmployees.find(e => e.user_id === id);
+    if (!emp) return;
+    document.getElementById('editEmpId').value = id;
+    document.getElementById('editEmpName').value = emp.full_name || '';
+    document.getElementById('editEmpEmail').value = emp.email || '';
+    const deptSelect = document.getElementById('editEmpDept');
+    deptSelect.innerHTML = '<option value="">None</option>' + depts.map(d => `<option value="${d.department_id}" ${d.department_id === emp.department_id ? 'selected' : ''}>${d.name}</option>`).join('');
+    document.getElementById('editEmpActive').value = emp.is_active === 'Y' || emp.is_active === true ? 'Y' : 'N';
+    document.getElementById('editEmpLocked').value = emp.is_locked === 'Y' || emp.is_locked === true ? 'Y' : 'N';
+    new bootstrap.Modal(document.getElementById('editEmployeeModal')).show();
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function updateEmployee() {
+  const id = document.getElementById('editEmpId').value;
+  const btn = document.getElementById('updateEmpBtn');
+  btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner spinner me-2"></i>Updating...';
+  try {
+    await API.put(`/employees/${id}`, {
+      full_name: document.getElementById('editEmpName').value.trim(),
+      email: document.getElementById('editEmpEmail').value.trim(),
+      department_id: parseInt(document.getElementById('editEmpDept').value) || null,
+      is_active: document.getElementById('editEmpActive').value,
+      is_locked: document.getElementById('editEmpLocked').value,
+    });
+    Toast.success('Employee updated!');
+    bootstrap.Modal.getInstance(document.getElementById('editEmployeeModal')).hide();
+    loadEmployees();
+  } catch (err) { Toast.error(err.message); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i>Save Changes'; }
+}
+
+// Toggle Status & Delete
+async function toggleEmployeeStatus(id) {
+  const emp = allEmployees.find(e => e.user_id === id);
+  if (!emp) return;
+  const newStatus = (emp.is_active === 'Y' || emp.is_active === true) ? 'N' : 'Y';
+  if (!confirm(`Are you sure you want to ${newStatus === 'N' ? 'disable' : 'enable'} this employee?`)) return;
+  try {
+    await API.put(`/employees/${id}`, { is_active: newStatus });
+    Toast.success(`Employee ${newStatus === 'Y' ? 'enabled' : 'disabled'}`);
+    loadEmployees();
+  } catch (err) { Toast.error(err.message); }
+}
+
+async function deleteEmployee(id) {
+  if (!confirm('Delete this employee permanently? This action cannot be undone.')) return;
+  try {
+    await API.del(`/employees/${id}`);
+    Toast.success('Employee deleted');
+    loadEmployees();
+  } catch (err) { Toast.error(err.message); }
+}
+
+document.addEventListener('DOMContentLoaded', loadEmployees);
+</script>
+{% endblock %}
+

@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Login History | FaceAuth Enterprise{% endblock %}
+{% block body_class %}bg-light{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block content %}
+<button class="sidebar-toggle d-lg-none" onclick="toggleSidebar()" aria-label="Toggle sidebar">
+  <i class="fa-solid fa-bars"></i>
+</button>
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<div class="page-shell">
+  <aside class="sidebar" id="historySidebar">
+    <div class="sidebar-header">
+      <a href="/dashboard" class="text-white text-decoration-none">
+        <h5 class="fw-bold mb-0"><i class="fa-solid fa-fingerprint me-2"></i>FaceAuth</h5>
+      </a>
+      <small class="text-white-50">Employee Workspace</small>
+    </div>
+    <nav>
+      <div class="nav-section-title">Main</div>
+      <a href="/dashboard" class="nav-link"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+      <a href="/profile" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+      <a href="/face-registration" class="nav-link"><i class="fa-solid fa-camera"></i> Face Registration</a>
+      <a href="/login-history" class="nav-link active"><i class="fa-solid fa-clock-rotate-left"></i> Login History</a>
+      <a href="/settings" class="nav-link"><i class="fa-solid fa-gear"></i> Settings</a>
+    </nav>
+    <div class="sidebar-footer">
+      <a href="#" class="nav-link" onclick="Auth.logout(); return false;">
+        <i class="fa-solid fa-right-from-bracket"></i> Sign Out
+      </a>
+    </div>
+  </aside>
+
+  <main class="content-area">
+    <nav class="topbar">
+      <div>
+        <h5 class="fw-bold mb-0">Login History</h5>
+        <small class="text-muted">Review your authentication activity</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-outline-primary btn-sm" onclick="refreshHistory()">
+          <i class="fa-solid fa-rotate me-1"></i> Refresh
+        </button>
+        <a href="/dashboard" class="btn btn-outline-primary btn-sm">
+          <i class="fa-solid fa-arrow-left me-1"></i> Dashboard
+        </a>
+      </div>
+    </nav>
+
+    <div class="page-content">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 pt-3 px-4">
+          <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label small">Filter by Method</label>
+              <select class="form-select form-select-sm" id="filterMethod" onchange="refreshHistory()">
+                <option value="">All Methods</option>
+                <option value="password">Password</option>
+                <option value="face">Face Recognition</option>
+                <option value="google">Google SSO</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Status</label>
+              <select class="form-select form-select-sm" id="filterStatus" onchange="refreshHistory()">
+                <option value="">All</option>
+                <option value="success">Success</option>
+                <option value="failed">Failed</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small">Search IP</label>
+              <input type="text" class="form-control form-control-sm" id="searchIP" placeholder="192.168.1.1" />
+            </div>
+            <div class="col-md-2">
+              <button class="btn btn-primary btn-sm w-100" onclick="refreshHistory()">Search</button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body px-4 pb-4">
+          <div id="historyLoading" class="loading-overlay">
+            <div class="loading-spinner"></div>
+          </div>
+          <div id="historyContent">
+            <div class="table-container">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Method</th>
+                    <th>Status</th>
+                    <th>IP Address</th>
+                    <th>Device / User Agent</th>
+                  </tr>
+                </thead>
+                <tbody id="historyBody">
+                  <tr><td colspan="5" class="text-center text-muted py-4">Loading history...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <small class="text-muted" id="historyCount">Showing 0 entries</small>
+              <nav>
+                <ul class="pagination pagination-sm mb-0" id="historyPagination"></ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+let historyPage = 1;
+const pageSize = 20;
+
+function toggleSidebar() {
+  document.getElementById('historySidebar')?.classList.toggle('open');
+  document.querySelector('.sidebar-overlay')?.classList.toggle('show');
+}
+
+async function refreshHistory() {
+  const loading = document.getElementById('historyLoading');
+  const content = document.getElementById('historyContent');
+  const tbody = document.getElementById('historyBody');
+  loading.style.display = 'flex';
+  tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="loading-spinner"></div></td></tr>';
+
+  try {
+    const method = document.getElementById('filterMethod').value;
+    const status = document.getElementById('filterStatus').value;
+    const ip = document.getElementById('searchIP').value.trim();
+
+    let path = `/login-history?page=${historyPage}&page_size=${pageSize}`;
+    if (method) path += `&method=${method}`;
+    if (status) path += `&status=${status}`;
+    if (ip) path += `&ip=${ip}`;
+
+    const history = await API.get(path);
+    const entries = history.results || history || [];
+
+    if (entries.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">No login history found.</td></tr>';
+      document.getElementById('historyCount').textContent = 'Showing 0 entries';
+      return;
+    }
+
+    tbody.innerHTML = entries.map(h => `
+      <tr>
+        <td>${h.login_time ? new Date(h.login_time).toLocaleString() : new Date(h.created_at).toLocaleString()}</td>
+        <td><span class="badge ${h.login_method === 'face' ? 'bg-soft-success' : 'bg-soft-info'}">${h.login_method || 'password'}</span></td>
+        <td><span class="badge ${h.success || h.success === 'Y' ? 'bg-soft-success' : 'bg-soft-danger'}">${h.success || h.success === 'Y' ? 'Success' : 'Failed'}</span></td>
+        <td class="text-muted small">${h.ip_address || '--'}</td>
+        <td class="text-muted small" title="${h.user_agent || ''}">${(h.user_agent || '--').substring(0, 50)}${(h.user_agent || '').length > 50 ? '...' : ''}</td>
+      </tr>
+    `).join('');
+
+    const total = history.total || entries.length;
+    document.getElementById('historyCount').textContent = `Showing ${entries.length} of ${total} entries`;
+
+    // Pagination
+    const totalPages = Math.ceil(total / pageSize);
+    const pagination = document.getElementById('historyPagination');
+    if (totalPages > 1) {
+      let pages = '';
+      if (historyPage > 1) pages += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${historyPage - 1}); return false;">Prev</a></li>`;
+      for (let i = Math.max(1, historyPage - 2); i <= Math.min(totalPages, historyPage + 2); i++) {
+        pages += `<li class="page-item ${i === historyPage ? 'active' : ''}"><a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a></li>`;
+      }
+      if (historyPage < totalPages) pages += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${historyPage + 1}); return false;">Next</a></li>`;
+      pagination.innerHTML = pages;
+    } else {
+      pagination.innerHTML = '';
+    }
+
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">Error: ${err.message}</td></tr>`;
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+function changePage(page) {
+  historyPage = page;
+  refreshHistory();
+}
+
+document.addEventListener('DOMContentLoaded', refreshHistory);
+</script>
+{% endblock %}
+
