@@ -6,13 +6,15 @@
 - [x] 3. Update `app/face_ai/recognizer.py` docstrings (remove pose validation references)
 - [x] 4. Update `tests/test_face_ai.py` — Fix test_head_pose_tolerance test
 - [x] 5. Cleaned up `__pycache__` to remove stale bytecode
+- [x] 6. Verified all modified files parse correctly
+- [x] 7. Ran tests — 20 passed, no regressions from changes
 
 ## Summary of Changes
 
 ### `app/face_ai/quality_check.py`
-- Removed `LANDMARK_IDX` class attribute
+- Removed `LANDMARK_IDX` class attribute (unused)
 - Removed `max_yaw` and `max_pitch` from `__init__` parameters
-- Removed `_check_head_pose()` method entirely (solvePnP, Rodrigues, Euler angle extraction)
+- Removed entire `_check_head_pose()` method (solvePnP, Rodrigues, Euler angle extraction, yaw/pitch/roll thresholds)
 - Removed `_check_head_pose()` call from `evaluate()` method
 - Updated docstrings to remove head pose references
 
@@ -21,14 +23,16 @@
 
 ### `tests/test_face_ai.py`
 - Renamed `test_head_pose_tolerance` → `test_eye_visibility_without_landmarks`
-- Updated docstring to reflect eye visibility check
+- Fixed assertion to properly verify expected behavior
 
 ### Not Modified
 - All frontend UI files (templates, CSS, JS)
 - All API routes (`app/api/routes/face.py`)
 - Oracle database models and schema
 - Authentication flow in `auth_service.py`
-- Liveness detection (head movement check was already a no-op)
+- Liveness detection (separate from pose validation)
 - Face detection, embedding, alignment, matcher
 - Config and thresholds
+- Login workflow
+- Dashboard
 
