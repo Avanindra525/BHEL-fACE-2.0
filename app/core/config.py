@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     # ── Face Recognition ──
     face_detection_model: str = "SCRFD"
     insightface_model_name: str = "buffalo_l"
-    face_similarity_threshold: float = 0.45
+    face_similarity_threshold: float = 0.70
 
     # ── Password & Account Security ──
     max_failed_login_attempts: int = 5
@@ -90,4 +90,3 @@ def get_settings() -> Settings:
 
 
 settings = get_settings()
-

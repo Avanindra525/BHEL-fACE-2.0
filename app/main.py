@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
@@ -26,7 +26,42 @@ from app.api.routes.statistics import router as statistics_router
 from app.api.routes.settings import router as settings_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.login_history import router as login_history_router
-from app.setup_oracle import create_sequences
+from app.setup_oracle import create_schema, validate_schema, inspect_constraint
+from sqlalchemy.exc import IntegrityError
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError) -> HTMLResponse:
+    """Handle Oracle ORA-00001 / ORA-02289 constraint violations with detailed diagnostics."""
+    import traceback
+    from fastapi.responses import JSONResponse
+
+    error_msg = str(exc.orig) if exc.orig else str(exc)
+    logger.error("oracle_integrity_error", extra={"error": error_msg, "sql": str(exc.statement), "params": str(exc.params)})
+
+    # Try to extract constraint name from ORA-00001 error
+    constraint_name = None
+    if "ORA-00001" in error_msg:
+        # e.g. "ORA-00001: unique constraint (FACEAUTH.SYS_C007547) violated"
+        import re
+        match = re.search(r'unique constraint\s+\((.+?)\)', error_msg)
+        if match:
+            constraint_name = match.group(1).split(".")[-1]  # Just the constraint name, not schema
+
+    diagnostics = {"error": "Database constraint violation", "detail": error_msg}
+    if constraint_name:
+        constraint_info = inspect_constraint(constraint_name)
+        diagnostics["constraint"] = constraint_info
+        diagnostics["message"] = (
+            f"Unique constraint '{constraint_info.get('column_name', constraint_name)}' "
+            f"on table '{constraint_info.get('table_name', 'unknown')}' violated. "
+            f"This usually means a duplicate value was provided."
+        )
+
+    # Log full stack trace for debugging
+    logger.error("integrity_error_stacktrace", extra={"traceback": "".join(traceback.format_exc())})
+
+    return JSONResponse(status_code=409, content=diagnostics)
 
 # ── Security Middleware ──────────────────────────────────────────────────
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -308,11 +343,16 @@ async def internal_error_page(request: Request) -> HTMLResponse:
 
 @app.on_event("startup")
 def startup_event() -> None:
-    """Initialize the database and logging infrastructure."""
+    """Initialize the database, validate Oracle schema, and sync sequences."""
 
     try:
-        Base.metadata.create_all(bind=engine)
-        create_sequences()
+        # Full schema initialization: validate connection, create tables, sync sequences
+        create_schema()
+    except RuntimeError as exc:
+        # Connection validation failed (e.g. SYS/SYSTEM instead of FACEAUTH)
+        logger.critical("startup_oracle_validation_failed", extra={"error": str(exc)})
+        raise
     except Exception as exc:  # pragma: no cover - defensive startup handling
         logger.warning("startup_database_initialization_failed", extra={"error": str(exc)})
+
     logger.info("application_started", extra={"service": settings.app_name})

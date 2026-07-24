@@ -1,15 +1,16 @@
-"""Face Recognition Pipeline Orchestrator.
+"""Face Recognition Pipeline Orchestrator (Simplified).
 
-Coordinates the complete face recognition pipeline:
-  Registration: detect → validate quality → align → generate embedding → store
-  Login: detect → align → generate embedding → match against gallery → authenticate
+Registration:  detect → minimal quality (blur, face size) → align → embed → store
+Login:         detect → align → embed → match → authenticate
+
+No liveness checks, no head pose validation, no blink detection,
+no brightness/contrast/eye-visibility checks.
+
+This is an academic demonstration project.
 """
 
 from __future__ import annotations
 
-import io
-import os
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -25,7 +26,6 @@ from app.face_ai.quality_check import QualityChecker
 from app.face_ai.liveness import LivenessChecker
 from app.face_ai.embedding import FaceEmbedder
 from app.face_ai.matcher import FaceMatcher
-from app.face_ai.thresholds import EMBEDDING_DIMENSION
 
 
 class FaceRecognizer:
@@ -36,8 +36,7 @@ class FaceRecognizer:
     Attributes:
         detector: SCRFD face detector.
         aligner: Facial landmark aligner.
-        quality_checker: Image quality validator.
-        liveness_checker: Liveness/anti-spoof checker.
+        quality_checker: Minimal quality validator (blur + face size only).
         embedder: ArcFace embedding generator.
         matcher: Cosine similarity matcher.
     """
@@ -64,7 +63,11 @@ class FaceRecognizer:
         )
 
         self.aligner = FaceAligner(desired_size=112)
-        self.quality_checker = QualityChecker()
+        self.quality_checker = QualityChecker(
+            min_blur_threshold=80.0,
+            min_face_size=80,
+        )
+        # Liveness checker is a no-op — always reports live
         self.liveness_checker = LivenessChecker()
         self.embedder = FaceEmbedder(model_name=settings.insightface_model_name)
         self.matcher = FaceMatcher(threshold=settings.face_similarity_threshold)
@@ -88,13 +91,13 @@ class FaceRecognizer:
     ) -> dict[str, Any]:
         """Process a face image for registration.
 
-        Complete pipeline:
-          1. Detect face (reject 0 or >1 faces)
-          2. Validate quality (blur, brightness, contrast, face size, eye visibility)
-          3. Align face
-          4. Generate ArcFace embedding
-          5. Save JPEG image
-          6. Return results for Oracle storage
+        Simplified pipeline:
+          1. Detect exactly one face (reject 0 or >1 faces)
+          2. Validate quality (blur + face size only)
+          3. Align face to canonical position
+          4. Generate ArcFace embedding (512-d, L2-normalized)
+          5. Save JPEG image to disk
+          6. Return embedding for Oracle storage
 
         Args:
             image: BGR image from camera/file.
@@ -108,7 +111,7 @@ class FaceRecognizer:
                 - embedding: 512-dim numpy array (or None)
                 - embedding_bytes: pickled bytes for Oracle BLOB
                 - image_path: saved file path
-                - quality_score: float
+                - quality_score: float (1.0 or 0.0)
                 - face: detected face dict
                 - checks: quality check results
                 - error: error message if failed
@@ -133,7 +136,7 @@ class FaceRecognizer:
 
         result["face"] = face
 
-        # Step 2: Validate image quality
+        # Step 2: Validate quality (blur + face size only)
         quality = self.quality_checker.evaluate(image, face)
         result["checks"] = quality.get("checks", {})
         result["quality_score"] = quality["score"]
@@ -172,7 +175,6 @@ class FaceRecognizer:
             extra={
                 "user_id": user_id,
                 "pose": pose,
-                "quality_score": quality["score"],
                 "image_path": relative_path,
             },
         )
@@ -240,14 +242,15 @@ class FaceRecognizer:
     ) -> dict[str, Any]:
         """Authenticate a user by face.
 
-        Complete pipeline:
-          1. Detect face
-          2. Validate quality
-          3. Check liveness
-          4. Align face
-          5. Generate embedding
-          6. Match against gallery
-          7. Authenticate if similarity > threshold
+        Simplified pipeline:
+          1. Detect face (reject if none found)
+          2. Minimal quality check (blur only)
+          3. Align face
+          4. Generate ArcFace embedding
+          5. Match against gallery by cosine similarity
+          6. Authenticate if similarity >= configurable threshold (default 0.70)
+
+        No liveness check, no blink, no head movement, no spoof detection.
 
         Args:
             image: BGR image from camera.
@@ -260,8 +263,6 @@ class FaceRecognizer:
                 - similarity: best similarity score
                 - threshold: matching threshold used
                 - face: detected face info
-                - checks: quality check results
-                - liveness: liveness check results
                 - error: error message if failed
         """
         result: dict[str, Any] = {
@@ -270,8 +271,6 @@ class FaceRecognizer:
             "similarity": 0.0,
             "threshold": self.matcher.threshold,
             "face": None,
-            "checks": {},
-            "liveness": {},
             "error": None,
         }
 
@@ -283,35 +282,23 @@ class FaceRecognizer:
 
         result["face"] = face
 
-        # Step 2: Validate quality
+        # Step 2: Minimal quality check (blur only)
         quality = self.quality_checker.evaluate(image, face)
-        result["checks"] = quality.get("checks", {})
-
         if not quality["passed"]:
             reasons = "; ".join(quality.get("reasons", []))
             result["error"] = f"Quality check failed: {reasons}"
             return result
 
-        # Step 3: Check liveness
-        liveness = self.liveness_checker.evaluate(image, face)
-        result["liveness"] = liveness
-
-        if not liveness["passed"]:
-            reasons = "; ".join(liveness.get("reasons", []))
-            result["error"] = f"Liveness check failed: {reasons}"
-            logger.debug("login_liveness_failed", extra={"reasons": reasons})
-            return result
-
-        # Step 4: Align face
+        # Step 3: Align face
         aligned = self.aligner.align(image, face)
 
-        # Step 5: Generate embedding
+        # Step 4: Generate embedding
         embedding = self.embedder.generate(aligned)
         if np.all(embedding == 0):
             result["error"] = "Failed to generate face embedding"
             return result
 
-        # Step 6: Match against gallery
+        # Step 5: Match against gallery
         similarity, matched_id = self.matcher.match(embedding, gallery)
         result["similarity"] = round(similarity, 4)
 
@@ -383,8 +370,3 @@ class FaceRecognizer:
                     )
 
         return gallery
-
-    def reset_liveness(self) -> None:
-        """Reset liveness detection state between login attempts."""
-        self.liveness_checker.reset()
-

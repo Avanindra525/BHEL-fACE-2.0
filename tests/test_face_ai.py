@@ -1,13 +1,13 @@
-"""Face AI test suite: quality, liveness, detection, alignment, embedding, matching, registration, login.
+"""Face AI test suite for simplified academic demo pipeline.
 
-Uses synthetic images (colored rectangles + noise) since we don't have
-a real camera in tests. All face AI components should handle edge cases
-gracefully.
+Tests: detection, alignment, embedding, matching, minimal quality checks.
+Liveness checks are removed (no-op). Head pose validation is removed.
+Brightness/contrast/eye-visibility checks are removed.
+
+Only rejects: no face, multiple faces, extreme blur, tiny face.
 """
 
 from __future__ import annotations
-
-from uuid import uuid4
 
 import cv2
 import numpy as np
@@ -15,7 +15,6 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.core.database import Base
 from app.face_ai.alignment import FaceAligner
 from app.face_ai.detector import FaceDetector
 from app.face_ai.embedding import FaceEmbedder
@@ -41,14 +40,11 @@ def _synthetic_face_image(size: tuple[int, int] = (480, 640)) -> np.ndarray:
     Generates a random gradient image with a face-like ellipse.
     """
     img = np.random.randint(50, 200, (*size, 3), dtype=np.uint8)
-    # Draw a face-like ellipse
     center = (size[1] // 2, size[0] // 2)
     axes = (size[1] // 4, size[0] // 3)
     cv2.ellipse(img, center, axes, 0, 0, 360, (180, 140, 100), -1)
-    # Add eyes
     cv2.circle(img, (center[0] - 30, center[1] - 20), 8, (50, 50, 50), -1)
     cv2.circle(img, (center[0] + 30, center[1] - 20), 8, (50, 50, 50), -1)
-    # Add mouth
     cv2.ellipse(img, (center[0], center[1] + 30), (30, 10), 0, 0, 180, (50, 50, 50), 2)
     return img
 
@@ -59,7 +55,7 @@ def _blank_image(size: tuple[int, int] = (100, 100)) -> np.ndarray:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Quality Check
+# Quality Check (Simplified — blur + face size only)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -68,38 +64,27 @@ class TestQualityChecker:
         self.checker = QualityChecker()
 
     def test_accepts_good_image(self) -> None:
-        """Good synthetic image passes quality."""
+        """Good synthetic image passes quality (or fails only on blur)."""
         img = _synthetic_face_image()
         result = self.checker.evaluate(img)
-        # Our synthetic image is random noise; blur check may fail
         assert "score" in result
         assert "passed" in result
         assert "checks" in result
 
     def test_rejects_blank_image(self) -> None:
-        """Blank image fails quality (brightness/contrast)."""
+        """Blank image fails quality (extreme blur / low Laplacian variance)."""
         img = _blank_image()
         result = self.checker.evaluate(img)
-        # Blank image has zero contrast
         assert result["passed"] is False
         assert len(result["reasons"]) > 0
 
     def test_detects_blur(self) -> None:
         """Very blurry image fails blur check."""
         img = np.ones((400, 400, 3), dtype=np.uint8) * 128
-        # Apply heavy blur
         img = cv2.GaussianBlur(img, (99, 99), 50)
         result = self.checker.evaluate(img)
-        # Blur check should detect this
         blur_check = result["checks"].get("blur", {})
         assert blur_check.get("passed") is False
-
-    def test_checks_brightness_range(self) -> None:
-        """Very dark image is rejected."""
-        img = np.ones((200, 200, 3), dtype=np.uint8) * 10
-        result = self.checker.evaluate(img)
-        brightness_check = result["checks"].get("brightness", {})
-        assert brightness_check.get("passed") is False
 
     def test_face_size_rejects_small_face(self) -> None:
         """Face smaller than min_face_size is rejected."""
@@ -108,24 +93,22 @@ class TestQualityChecker:
         result = self.checker.evaluate(img, face)
         face_size_check = result["checks"].get("face_size", {})
         if face_size_check:
-            # If face size check ran, it should fail
             assert face_size_check.get("passed") is False
 
-    def test_eye_visibility_without_landmarks(self) -> None:
-        """Eye visibility check tolerates missing landmarks."""
+    def test_passes_without_landmarks(self) -> None:
+        """Quality check tolerates missing landmarks (eye_visibility removed)."""
         img = _synthetic_face_image()
         face = {"bbox": [50, 50, 200, 200], "kps": None}
         result = self.checker.evaluate(img, face)
-        # Should not crash; result should be a dict with expected keys
         assert isinstance(result, dict)
         assert "passed" in result
         assert "checks" in result
-        # Eye visibility check should be absent when kps is None
+        # eye_visibility check no longer present
         assert "eye_visibility" not in result["checks"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Liveness Detection
+# Liveness Detection (No-op — always passes)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -133,28 +116,25 @@ class TestLivenessChecker:
     def setup_method(self) -> None:
         self.checker = LivenessChecker()
 
-    def test_accepts_motion(self) -> None:
-        """Consecutive frames with motion should pass."""
-        img1 = _synthetic_face_image()
-        img2 = _synthetic_face_image()
-        # First call sets baseline
-        result1 = self.checker.evaluate(img1)
-        assert "passed" in result1
-        result2 = self.checker.evaluate(img2)
-        assert "passed" in result2 or "reasons" in result2
+    def test_always_passes(self) -> None:
+        """Liveness checker always passes (academic demo mode)."""
+        img = _synthetic_face_image()
+        result = self.checker.evaluate(img)
+        assert result["passed"] is True
+        assert result["score"] == 1.0
 
-    def test_reset_clears_state(self) -> None:
-        """Reset clears motion and blink state."""
-        self.checker.evaluate(_synthetic_face_image())
+    def test_reset_does_not_crash(self) -> None:
+        """Reset is a no-op, does not crash."""
         self.checker.reset()
-        assert self.checker._prev_gray is None
-        assert self.checker._blink_counter == 0
+        result = self.checker.evaluate(_synthetic_face_image())
+        assert result["passed"] is True
 
     def test_handles_empty_image(self) -> None:
         """Empty image doesn't crash."""
         img = np.zeros((0, 0, 3), dtype=np.uint8)
         result = self.checker.evaluate(img)
-        assert "passed" in result
+        assert result["passed"] is True
+        assert result["score"] == 1.0
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -244,13 +224,13 @@ class TestFaceEmbedder:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Face Matching
+# Face Matching (with configurable threshold)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 class TestFaceMatcher:
     def setup_method(self) -> None:
-        self.matcher = FaceMatcher(threshold=0.45)
+        self.matcher = FaceMatcher(threshold=0.70)
 
     def test_match_identical_vectors(self) -> None:
         """Identical vectors match with similarity ~1.0."""
@@ -268,7 +248,7 @@ class TestFaceMatcher:
         candidates = [(1, emb2)]
         score, match_id = self.matcher.match(emb1, candidates)
         assert match_id is None
-        assert score < 0.45
+        assert score < 0.70
 
     def test_match_all_returns_sorted(self) -> None:
         """match_all returns candidates sorted by similarity descending."""
@@ -280,7 +260,6 @@ class TestFaceMatcher:
         ]
         results = self.matcher.match_all(emb, candidates)
         assert len(results) == 3
-        # First result should have highest similarity
         assert results[0][1] >= results[1][1] >= results[2][1]
 
     def test_empty_candidates(self) -> None:
@@ -307,7 +286,7 @@ class TestFaceMatcher:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Recognizer Pipeline
+# Recognizer Pipeline (Simplified)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
@@ -329,7 +308,6 @@ class TestFaceRecognizer:
 
     def test_build_gallery_from_samples(self, db_session: Session) -> None:
         """Building gallery from valid samples returns embeddings."""
-        # Create a user and face sample
         user = User(
             username=unique_username(),
             email=unique_email(),
@@ -339,7 +317,6 @@ class TestFaceRecognizer:
         db_session.add(user)
         db_session.commit()
 
-        # Create a face sample with a real embedding
         emb = np.random.randn(512).astype(np.float32)
         emb = emb / np.linalg.norm(emb)
         sample = FaceSample(
@@ -357,12 +334,14 @@ class TestFaceRecognizer:
         assert gallery[0][0] == user.user_id
         assert np.allclose(gallery[0][1], emb)
 
-    def test_reset_liveness(self) -> None:
-        """reset_liveness clears liveness state."""
-        self.recognizer.liveness_checker.evaluate(_synthetic_face_image())
-        self.recognizer.reset_liveness()
-        assert self.recognizer.liveness_checker._prev_gray is None
-        assert self.recognizer.liveness_checker._blink_counter == 0
+    def test_login_no_liveness_required(self) -> None:
+        """Login does not require liveness (always passes)."""
+        # Login with a blank image should fail only on "No face detected"
+        img = _blank_image()
+        gallery = [(1, np.random.randn(512).astype(np.float32))]
+        result = self.recognizer.login_face(img, gallery)
+        assert result["authenticated"] is False
+        assert "No face detected" in (result.get("error") or "")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -392,7 +371,6 @@ class TestFaceAPI:
             files={"file": ("test.jpg", b"not-an-image", "image/jpeg")},
             headers=auth_headers_employee,
         )
-        # Should either fail quality or detect
         assert response.status_code in (400, 201)
 
     def test_face_status_unregistered(self, client: TestClient, auth_headers_employee) -> None:
@@ -428,4 +406,3 @@ class TestFaceAPI:
             files={"file": ("test.jpg", img_bytes, "image/jpeg")},
         )
         assert response.status_code == 401
-

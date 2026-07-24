@@ -1,13 +1,15 @@
-"""Face registration and login API routes with full production pipeline.
+"""Face registration and login API routes — simplified pipeline.
 
 Integrates with the FaceRecognizer orchestrator for:
-  - Face Registration: quality validation → SCRFD detection → alignment → ArcFace embedding → Oracle storage
-  - Face Login: detection → quality → liveness → alignment → embedding → gallery matching → JWT
+  - Face Registration: SCRFD detection → alignment → ArcFace embedding → Oracle storage
+  - Face Login: detection → alignment → embedding → gallery matching → JWT
+
+No liveness checks, no head pose validation, no blink detection.
+This is an academic demonstration project.
 """
 
 from __future__ import annotations
 
-import io
 from datetime import datetime
 from typing import Any
 
@@ -52,15 +54,15 @@ async def register_face(
     db: Session = Depends(get_db),
     recognizer: FaceRecognizer = Depends(get_recognizer),
 ) -> dict[str, object]:
-    """Register a face sample with full production pipeline.
+    """Register a face sample.
 
     Pipeline:
         1. Decode uploaded image
         2. Detect exactly one face (SCRFD)
-        3. Validate quality (blur, brightness, contrast, face size, pose, eyes)
-        4. Align face to canonical position
+        3. Quality check (blur + face size only)
+        4. Align face
         5. Generate ArcFace embedding
-        6. Save JPEG to uploads directory
+        6. Save JPEG
         7. Store embedding + metadata in Oracle face_samples table
         8. Mark user as face_registered
         9. Write audit log
@@ -105,7 +107,7 @@ async def register_face(
     audit = AuditLog(
         user_id=current_user.user_id,
         action="face_registered",
-        details=f"Face registered [{pose}] - quality: {result['quality_score']:.2f}",
+        details=f"Face registered [{pose}]",
     )
     db.add(audit)
 
@@ -117,7 +119,6 @@ async def register_face(
         extra={
             "user": current_user.username,
             "pose": pose,
-            "quality_score": result["quality_score"],
             "face_size": result.get("face", {}).get("face_size"),
         },
     )
@@ -145,7 +146,7 @@ async def register_multi_pose(
     """Register multiple face poses in a single request.
 
     Accepts up to 4 images (front, left, right, up) and processes each
-    through the full pipeline, storing all successful captures.
+    through the simplified pipeline.
     """
     images: dict[str, np.ndarray] = {}
     pose_map = {"front": front, "left": left, "right": right, "up": up}
@@ -234,24 +235,25 @@ async def login_face(
 ) -> dict[str, object]:
     """Authenticate a user using face recognition.
 
-    Full production pipeline:
+    Simplified pipeline:
         1. Decode uploaded image
         2. Detect face (SCRFD)
-        3. Validate quality (blur, brightness, contrast, size, pose)
-        4. Liveness detection (blink, texture, motion)
-        5. Align face
-        6. Generate ArcFace embedding
-        7. Load all registered embeddings from Oracle
-        8. Cosine similarity matching against gallery
-        9. Authenticate if similarity exceeds threshold
-        10. Generate JWT + log login event
+        3. Minimal quality check (blur only)
+        4. Align face
+        5. Generate ArcFace embedding
+        6. Load all registered embeddings from Oracle
+        7. Cosine similarity matching against gallery
+        8. Authenticate if similarity >= 0.70
+        9. Generate JWT + log login event
+
+    No liveness check required.
     """
     # Step 1: Decode image
     image = _decode_upload_to_array(file)
     if image is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or empty image file")
 
-    # Step 2-6: Build gallery from all face samples with embeddings
+    # Step 2: Build gallery from all face samples with embeddings
     face_samples = (
         db.query(FaceSample)
         .filter(FaceSample.embedding_blob.isnot(None))
@@ -266,18 +268,15 @@ async def login_face(
 
     gallery = recognizer.build_gallery(face_samples)
 
-    # Step 7: Run login pipeline
+    # Step 3: Run login pipeline
     login_result = recognizer.login_face(image, gallery)
 
-    # Reset liveness state for next attempt
-    recognizer.reset_liveness()
-
     if not login_result["authenticated"]:
-        error_msg = login_result.get("error", "Face authentication failed - no matching face found")
+        error_msg = login_result.get("error", "Face not recognized")
         logger.debug("face_login_failed", extra={"error": error_msg})
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=error_msg)
 
-    # Step 8: Look up the authenticated user
+    # Step 4: Look up the authenticated user
     user = db.query(User).filter(User.user_id == login_result["user_id"]).first()
     if not user or user.is_active != "Y":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account is inactive or not found")
@@ -285,11 +284,11 @@ async def login_face(
     if user.is_locked == "Y":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User account is locked")
 
-    # Step 9: Generate tokens
+    # Step 5: Generate tokens
     access_token = create_access_token(user.username, {"login_method": "face"})
     refresh_token = create_refresh_token(user.username)
 
-    # Step 10: Log the login event
+    # Step 6: Log the login event
     login_log = LoginLog(
         user_id=user.user_id,
         login_method="face",
@@ -299,7 +298,7 @@ async def login_face(
     )
     db.add(login_log)
 
-    # Step 11: Update user last login
+    # Step 7: Update user last login
     user.last_login_at = datetime.utcnow()
     user.failed_login_attempts = 0
     db.commit()
@@ -319,14 +318,6 @@ async def login_face(
         "token_type": "bearer",
         "similarity": login_result["similarity"],
         "threshold": login_result["threshold"],
-        "liveness": {
-            "score": login_result.get("liveness", {}).get("score"),
-            "passed": login_result.get("liveness", {}).get("passed"),
-        },
-        "quality": {
-            "score": login_result.get("checks", {}).get("blur", {}).get("value"),
-            "checks": list(login_result.get("checks", {}).keys()),
-        },
         "user": {
             "user_id": user.user_id,
             "username": user.username,
@@ -357,4 +348,3 @@ def face_status(
             else 0
         ),
     }
-
