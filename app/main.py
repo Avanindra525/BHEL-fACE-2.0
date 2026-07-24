@@ -4,16 +4,15 @@ from __future__ import annotations
 
 from fastapi import FastAPI, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.database import Base, SessionLocal, engine
+from app.core.database import SessionLocal
 from app.core.logging import logger
-from app.core.security import create_access_token
 from app.api.routes.auth import router as auth_router
 from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.employees import router as employees_router
@@ -26,42 +25,7 @@ from app.api.routes.statistics import router as statistics_router
 from app.api.routes.settings import router as settings_router
 from app.api.routes.profile import router as profile_router
 from app.api.routes.login_history import router as login_history_router
-from app.setup_oracle import create_schema, validate_schema, inspect_constraint
-from sqlalchemy.exc import IntegrityError
-
-
-@app.exception_handler(IntegrityError)
-async def integrity_error_handler(request: Request, exc: IntegrityError) -> HTMLResponse:
-    """Handle Oracle ORA-00001 / ORA-02289 constraint violations with detailed diagnostics."""
-    import traceback
-    from fastapi.responses import JSONResponse
-
-    error_msg = str(exc.orig) if exc.orig else str(exc)
-    logger.error("oracle_integrity_error", extra={"error": error_msg, "sql": str(exc.statement), "params": str(exc.params)})
-
-    # Try to extract constraint name from ORA-00001 error
-    constraint_name = None
-    if "ORA-00001" in error_msg:
-        # e.g. "ORA-00001: unique constraint (FACEAUTH.SYS_C007547) violated"
-        import re
-        match = re.search(r'unique constraint\s+\((.+?)\)', error_msg)
-        if match:
-            constraint_name = match.group(1).split(".")[-1]  # Just the constraint name, not schema
-
-    diagnostics = {"error": "Database constraint violation", "detail": error_msg}
-    if constraint_name:
-        constraint_info = inspect_constraint(constraint_name)
-        diagnostics["constraint"] = constraint_info
-        diagnostics["message"] = (
-            f"Unique constraint '{constraint_info.get('column_name', constraint_name)}' "
-            f"on table '{constraint_info.get('table_name', 'unknown')}' violated. "
-            f"This usually means a duplicate value was provided."
-        )
-
-    # Log full stack trace for debugging
-    logger.error("integrity_error_stacktrace", extra={"traceback": "".join(traceback.format_exc())})
-
-    return JSONResponse(status_code=409, content=diagnostics)
+from app.setup_oracle import create_schema
 
 # ── Security Middleware ──────────────────────────────────────────────────
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -104,15 +68,11 @@ app.include_router(login_history_router, prefix="/api/login-history", tags=["log
 
 @app.get("/", include_in_schema=False)
 async def home_page(request: Request) -> HTMLResponse:
-    """Serve the landing page for the application."""
-
     return templates.TemplateResponse(request=request, name="index.html")
 
 
 @app.get("/health")
 async def health_check() -> dict[str, str]:
-    """Health endpoint for runtime checks."""
-
     return {"status": "ok", "service": settings.app_name}
 
 
@@ -224,13 +184,11 @@ async def create_department_from_form(name: str = Form(...), code: str | None = 
     db: Session = SessionLocal()
     try:
         from app.models.department import Department
-
         department = Department(name=name, code=code or None)
         db.add(department)
         db.commit()
     finally:
         db.close()
-
     return RedirectResponse(url="/departments", status_code=303)
 
 
@@ -239,11 +197,9 @@ async def roles_page(request: Request) -> HTMLResponse:
     db: Session = SessionLocal()
     try:
         from app.models.role import Role
-
         roles = db.query(Role).order_by(Role.created_at.desc()).all()
     finally:
         db.close()
-
     return templates.TemplateResponse(request=request, name="roles.html", context={"roles": roles})
 
 
@@ -252,13 +208,11 @@ async def create_role_from_form(name: str = Form(...)) -> RedirectResponse:
     db: Session = SessionLocal()
     try:
         from app.models.role import Role
-
         role = Role(name=name)
         db.add(role)
         db.commit()
     finally:
         db.close()
-
     return RedirectResponse(url="/roles", status_code=303)
 
 
@@ -267,11 +221,9 @@ async def permissions_page(request: Request) -> HTMLResponse:
     db: Session = SessionLocal()
     try:
         from app.models.permission import Permission
-
         permissions = db.query(Permission).order_by(Permission.created_at.desc()).all()
     finally:
         db.close()
-
     return templates.TemplateResponse(request=request, name="permissions.html", context={"permissions": permissions})
 
 
@@ -280,13 +232,11 @@ async def create_permission_from_form(name: str = Form(...)) -> RedirectResponse
     db: Session = SessionLocal()
     try:
         from app.models.permission import Permission
-
         permission = Permission(name=name)
         db.add(permission)
         db.commit()
     finally:
         db.close()
-
     return RedirectResponse(url="/permissions", status_code=303)
 
 
@@ -307,7 +257,6 @@ async def statistics_page(request: Request) -> HTMLResponse:
 
 @app.get("/analytics", include_in_schema=False)
 async def analytics_page(request: Request) -> HTMLResponse:
-    """Full analytics dashboard with Chart.js, filters, and export."""
     db: Session = SessionLocal()
     try:
         from app.models.department import Department
@@ -343,16 +292,13 @@ async def internal_error_page(request: Request) -> HTMLResponse:
 
 @app.on_event("startup")
 def startup_event() -> None:
-    """Initialize the database, validate Oracle schema, and sync sequences."""
-
+    """Initialize the database, validate Oracle schema, create tables."""
     try:
-        # Full schema initialization: validate connection, create tables, sync sequences
         create_schema()
     except RuntimeError as exc:
-        # Connection validation failed (e.g. SYS/SYSTEM instead of FACEAUTH)
         logger.critical("startup_oracle_validation_failed", extra={"error": str(exc)})
         raise
-    except Exception as exc:  # pragma: no cover - defensive startup handling
+    except Exception as exc:
         logger.warning("startup_database_initialization_failed", extra={"error": str(exc)})
 
     logger.info("application_started", extra={"service": settings.app_name})
