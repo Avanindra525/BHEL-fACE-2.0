@@ -47,32 +47,68 @@
 
     <div class="page-content">
       <div class="row g-4">
-        <!-- Security Preferences -->
+        <!-- Security -->
         <div class="col-lg-6">
           <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-0 pt-3 px-4">
-              <h6 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved text-primary me-2"></i>Security Preferences</h6>
+              <h6 class="fw-bold mb-0"><i class="fa-solid fa-shield-halved text-primary me-2"></i>Security</h6>
             </div>
             <div class="card-body px-4 pb-4">
-              <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="mfaReminders" checked />
-                <label class="form-check-label" for="mfaReminders">Enable MFA reminders</label>
-                <small class="d-block text-muted">Get notified to enroll in multi-factor authentication.</small>
+              <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                  <div class="fw-semibold">Password</div>
+                  <small class="text-muted">Update your account password from Profile.</small>
+                </div>
+                <a href="/profile" class="btn btn-outline-primary btn-sm">
+                  <i class="fa-solid fa-key me-1"></i>Change
+                </a>
               </div>
-              <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="faceReRegistration" />
-                <label class="form-check-label" for="faceReRegistration">Require face re-registration every 90 days</label>
-                <small class="d-block text-muted">Automatically prompt for biometric refresh.</small>
+              <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                  <div class="fw-semibold">Face registration</div>
+                  <small class="text-muted">Register or update your biometric profile.</small>
+                </div>
+                <a href="/face-registration" class="btn btn-outline-primary btn-sm">
+                  <i class="fa-solid fa-camera me-1"></i>Open
+                </a>
               </div>
-              <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="loginAlerts" checked />
-                <label class="form-check-label" for="loginAlerts">Login alerts via email</label>
-                <small class="d-block text-muted">Receive email notifications for new sign-ins.</small>
+              <div class="pt-3">
+                <small class="text-muted d-block">Lockout policy</small>
+                <span class="fw-semibold" id="settingsLockoutPolicy">--</span>
               </div>
-              <hr />
-              <h6 class="fw-bold mb-2">Session</h6>
-              <div class="d-flex justify-content-between align-items-center">
-                <span class="small">Active sessions</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current Session -->
+        <div class="col-lg-6">
+          <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-3 px-4">
+              <h6 class="fw-bold mb-0"><i class="fa-solid fa-desktop text-primary me-2"></i>Current Session</h6>
+            </div>
+            <div class="card-body px-4 pb-4">
+              <div id="currentSessionInfo">
+                <div class="row g-3 small">
+                  <div class="col-6">
+                    <span class="text-muted d-block">Signed in as</span>
+                    <span class="fw-semibold" id="sessionUser">--</span>
+                  </div>
+                  <div class="col-6">
+                    <span class="text-muted d-block">Access token expires</span>
+                    <span class="fw-semibold" id="sessionExpires">--</span>
+                  </div>
+                  <div class="col-6">
+                    <span class="text-muted d-block">Session issued</span>
+                    <span class="fw-semibold" id="sessionIssued">--</span>
+                  </div>
+                  <div class="col-6">
+                    <span class="text-muted d-block">Refresh token</span>
+                    <span class="fw-semibold" id="sessionRefresh">--</span>
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                <small class="text-muted">Revoke all refresh tokens for this account.</small>
                 <button class="btn btn-outline-danger btn-sm" onclick="revokeSessions()">
                   <i class="fa-solid fa-xmark me-1"></i>Revoke All
                 </button>
@@ -82,38 +118,46 @@
         </div>
 
         <!-- Notification Preferences -->
-        <div class="col-lg-6">
+        <div class="col-12">
           <div class="card border-0 shadow-sm">
             <div class="card-header bg-white border-0 pt-3 px-4">
               <h6 class="fw-bold mb-0"><i class="fa-solid fa-bell text-primary me-2"></i>Notification Preferences</h6>
             </div>
             <div class="card-body px-4 pb-4">
-              <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="emailNotifications" checked />
-                <label class="form-check-label" for="emailNotifications">Email notifications</label>
-                <small class="d-block text-muted">Receive system updates via email.</small>
-              </div>
-              <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="browserNotifications" checked />
-                <label class="form-check-label" for="browserNotifications">Browser push notifications</label>
-                <small class="d-block text-muted">Get real-time alerts in your browser.</small>
-              </div>
-              <div class="form-check form-switch mb-3">
-                <input class="form-check-input" type="checkbox" id="weeklyDigest" />
-                <label class="form-check-label" for="weeklyDigest">Weekly security digest</label>
-                <small class="d-block text-muted">Summary of your account activity each week.</small>
-              </div>
-              <hr />
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold mb-0">Appearance</h6>
-                  <small class="text-muted">Choose your theme</small>
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <div class="border rounded p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="fw-semibold">Email notifications</div>
+                        <small class="text-muted">Not implemented in this academic build.</small>
+                      </div>
+                      <span class="badge bg-soft-warning">Coming Soon</span>
+                    </div>
+                  </div>
                 </div>
-                <select class="form-select form-select-sm w-auto" id="themeSelect">
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                  <option value="auto">Auto</option>
-                </select>
+                <div class="col-md-4">
+                  <div class="border rounded p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="fw-semibold">Browser notifications</div>
+                        <small class="text-muted">No push service is connected.</small>
+                      </div>
+                      <span class="badge bg-soft-warning">Coming Soon</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="border rounded p-3 h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                      <div>
+                        <div class="fw-semibold">Weekly digest</div>
+                        <small class="text-muted">Digest emails are not available yet.</small>
+                      </div>
+                      <span class="badge bg-soft-warning">Coming Soon</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -163,9 +207,36 @@ async function loadSettings() {
     const s = await API.get('/settings');
     document.getElementById('settingsAppVersion').textContent = s.app_version || '1.0.0';
     document.getElementById('settingsAppEnv').textContent = s.app_env || 'production';
+    document.getElementById('settingsLockoutPolicy').textContent = `${s.max_failed_login_attempts || 5} failed attempts, ${s.lockout_minutes || 15} minute lockout`;
   } catch (err) {
     // fallback to defaults
   }
+}
+
+function decodeJwtPayload(token) {
+  if (!token) return null;
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(payload.padEnd(payload.length + (4 - payload.length % 4) % 4, '=')));
+  } catch (err) {
+    return null;
+  }
+}
+
+function loadCurrentSession() {
+  const token = localStorage.getItem('access_token');
+  const refresh = localStorage.getItem('refresh_token');
+  const payload = decodeJwtPayload(token);
+
+  if (!payload) {
+    document.getElementById('currentSessionInfo').innerHTML = '<p class="text-muted mb-0">No active browser session found.</p>';
+    return;
+  }
+
+  document.getElementById('sessionUser').textContent = payload.sub || '--';
+  document.getElementById('sessionExpires').textContent = payload.exp ? new Date(payload.exp * 1000).toLocaleString() : '--';
+  document.getElementById('sessionIssued').textContent = payload.iat ? new Date(payload.iat * 1000).toLocaleString() : '--';
+  document.getElementById('sessionRefresh').textContent = refresh ? 'Stored' : 'Not stored';
 }
 
 function revokeSessions() {
@@ -178,23 +249,9 @@ function revokeSessions() {
   }
 }
 
-// Save toggle preferences
-document.querySelectorAll('.form-check-input').forEach(input => {
-  input.addEventListener('change', function() {
-    const key = this.id;
-    const value = this.checked;
-    localStorage.setItem('setting_' + key, value);
-    Toast.success('Preference saved');
-  });
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  loadCurrentSession();
 });
-
-// Restore saved preferences
-document.querySelectorAll('.form-check-input').forEach(input => {
-  const saved = localStorage.getItem('setting_' + input.id);
-  if (saved !== null) input.checked = saved === 'true';
-});
-
-document.addEventListener('DOMContentLoaded', loadSettings);
 </script>
 {% endblock %}
-
