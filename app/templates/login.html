@@ -4,128 +4,98 @@
 {% block navbar %}{% endblock %}
 {% block footer %}{% endblock %}
 {% block content %}
-<div class="container">
-  <div class="row justify-content-center">
-    <div class="col-lg-7 col-md-9">
-      <div class="auth-card p-4 p-lg-5" style="max-width: 520px; margin: 0 auto;">
-        <div class="text-center mb-4">
-          <a href="/" class="text-decoration-none" aria-label="Go to home page">
-            <div class="avatar-badge mx-auto mb-3"><i class="fa-solid fa-fingerprint"></i></div>
-          </a>
-          <h2 class="fw-bold">Welcome back</h2>
-          <p class="text-muted">Sign in with your enterprise credentials</p>
+<div class="login-wrapper">
+  <div class="login-card">
+    <!-- Left: Branding Panel -->
+    <div class="login-brand">
+      <div class="brand-content">
+        <div class="brand-icon">
+          <i class="fa-solid fa-shield-halved"></i>
         </div>
-
-        <!-- Login Tabs -->
-        <ul class="nav nav-pills nav-justified mb-4 gap-2" role="tablist">
-          <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="password-tab" data-bs-toggle="pill" data-bs-target="#password-login" type="button" role="tab" aria-selected="true" aria-controls="password-login">
-              <i class="fa-solid fa-key me-1"></i>Password
-            </button>
-          </li>
-          <li class="nav-item" role="presentation">
-            <button class="nav-link" id="face-tab" data-bs-toggle="pill" data-bs-target="#face-login" type="button" role="tab" aria-selected="false" aria-controls="face-login">
-              <i class="fa-solid fa-camera me-1"></i>Face Login
-            </button>
-          </li>
-        </ul>
-
-        <div class="tab-content">
-          <!-- Password Login Tab -->
-          <div class="tab-pane fade show active" id="password-login" role="tabpanel" aria-labelledby="password-tab">
-            <form id="loginForm" data-validate-form novalidate>
-              <div class="mb-3">
-                <label class="form-label" for="loginUsername">Username</label>
-                <div class="input-group">
-                  <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="loginUsername"
-                    name="username"
-                    data-validate="required|username"
-                    placeholder="Enter your username"
-                    autocomplete="username"
-                    aria-describedby="usernameFeedback"
-                  />
-                </div>
-                <div class="invalid-feedback" id="usernameFeedback"></div>
-              </div>
-              <div class="mb-3">
-                <label class="form-label" for="loginPassword">Password</label>
-                <div class="input-group">
-                  <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-                  <input
-                    type="password"
-                    class="form-control"
-                    id="loginPassword"
-                    name="password"
-                    data-validate="required"
-                    placeholder="Enter your password"
-                    autocomplete="current-password"
-                    aria-describedby="passwordFeedback"
-                  />
-                  <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
-                    <i class="fa-solid fa-eye"></i>
-                  </button>
-                </div>
-                <div class="invalid-feedback" id="passwordFeedback"></div>
-              </div>
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="form-check">
-                  <input class="form-check-input" type="checkbox" id="rememberMe" />
-                  <label class="form-check-label small" for="rememberMe">Remember me</label>
-                </div>
-                <a href="#" class="small text-decoration-none" tabindex="0">Forgot password?</a>
-              </div>
-              <button type="submit" class="btn btn-primary w-100 py-2" id="loginBtn">
-                <i class="fa-solid fa-right-to-bracket me-2"></i>Sign In
-              </button>
-            </form>
+        <h3 class="brand-title">FaceAuth</h3>
+        <p class="brand-subtitle">Enterprise Authentication</p>
+        <div class="brand-features">
+          <div class="feature-item">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>Face Recognition</span>
           </div>
-
-          <!-- Face Login Tab -->
-          <div class="tab-pane fade" id="face-login" role="tabpanel" aria-labelledby="face-tab">
-            <div class="text-center mb-3">
-              <p class="text-muted small">Look at the camera to sign in automatically</p>
-            </div>
-
-            <!-- Camera Preview (hidden by default) -->
-            <div id="faceLoginCamera" class="camera-container mb-3" style="display:none;">
-              <video id="faceLoginVideo" autoplay playsinline muted></video>
-              <div class="camera-overlay">
-                <div class="camera-frame" id="faceLoginFrame"></div>
-              </div>
-              <div id="faceLoginStatus" class="camera-pose-label">Detecting face...</div>
-            </div>
-
-            <!-- Placeholder (visible by default) -->
-            <div id="faceLoginPlaceholder" class="text-center py-4">
-              <i class="fa-solid fa-camera fa-3x text-muted mb-3 d-block"></i>
-              <p class="text-muted mb-3">Click below to start face recognition login</p>
-              <button class="btn btn-primary" id="startFaceLoginBtn">
-                <i class="fa-solid fa-camera me-2"></i>Start Face Login
-              </button>
-            </div>
-
-            <!-- Result container (hidden by default) -->
-            <div id="faceLoginResult" style="display:none;"></div>
+          <div class="feature-item">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>RBAC Security</span>
           </div>
-        </div>
-
-        <!-- Divider -->
-        <hr class="my-4" />
-
-        <!-- Register link -->
-        <div class="text-center">
-          <p class="text-muted small mb-0">
-            Don't have an account? <a href="/register" class="text-decoration-none fw-semibold">Register</a>
-          </p>
-        </div>
+          <div class="feature-item">
+            <i class="fa-solid fa-check-circle"></i>
+            <span>Oracle 19c</span>
+          </div>
       </div>
-    </div>
+
+    <!-- Right: Login Form Panel -->
+    <div class="login-form-panel">
+      <div class="form-header">
+        <h2 class="form-title">Welcome back</h2>
+        <p class="form-subtitle">Sign in to your account</p>
+      </div>
+
+      <!-- Password Login Form -->
+      <form id="loginForm" data-validate-form novalidate>
+        <div class="mb-3">
+          <label class="form-label" for="loginUsername">Username</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-user"></i></span>
+            <input type="text" class="form-control" id="loginUsername" name="username" data-validate="required|username" placeholder="Enter your username" autocomplete="username" aria-describedby="usernameFeedback" />
+          </div>
+          <div class="invalid-feedback" id="usernameFeedback"></div>
+        <div class="mb-3">
+          <label class="form-label" for="loginPassword">Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+            <input type="password" class="form-control" id="loginPassword" name="password" data-validate="required" placeholder="Enter your password" autocomplete="current-password" aria-describedby="passwordFeedback" />
+            <button class="btn btn-outline-secondary" type="button" id="togglePassword" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <div class="invalid-feedback" id="passwordFeedback"></div>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="rememberMe" />
+            <label class="form-check-label small" for="rememberMe">Remember me</label>
+          </div>
+          <a href="#" class="small text-decoration-none forgot-link" tabindex="0">Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary w-100 py-2-5" id="loginBtn">
+          <i class="fa-solid fa-right-to-bracket me-2"></i>Sign In
+        </button>
+      </form>
+
+      <!-- OR Divider -->
+      <div class="or-divider">
+        <span class="or-line"></span>
+        <span class="or-text">or</span>
+        <span class="or-line"></span>
+      </div>
+
+      <!-- Face Login Section -->
+      <div class="face-login-section">
+        <div id="faceLoginCamera" class="camera-container mb-3" style="display:none;">
+          <video id="faceLoginVideo" autoplay playsinline muted></video>
+          <div class="camera-overlay">
+            <div class="camera-frame" id="faceLoginFrame"></div>
+          <div id="faceLoginStatus" class="camera-pose-label">Detecting face...</div>
+
+        <div id="faceLoginPlaceholder" class="text-center">
+          <button class="btn btn-outline-primary w-100 py-2-5" id="startFaceLoginBtn">
+            <i class="fa-solid fa-camera me-2"></i>Sign in with Face
+          </button>
+        </div>
+
+        <div id="faceLoginResult" style="display:none;"></div>
+
+      <div class="register-link mt-4 text-center">
+        <p class="text-muted small mb-0">
+          Don't have an account? <a href="/register" class="text-decoration-none fw-semibold">Create one</a>
+        </p>
+      </div>
   </div>
-</div>
 {% endblock %}
 {% block scripts %}
 <script>
@@ -186,7 +156,6 @@ document.getElementById('startFaceLoginBtn')?.addEventListener('click', async fu
   const frame = document.getElementById('faceLoginFrame');
   const btn = this;
 
-  // Guard: already streaming
   if (faceLoginStream) return;
 
   try {
@@ -204,7 +173,6 @@ document.getElementById('startFaceLoginBtn')?.addEventListener('click', async fu
     result.style.display = 'none';
     if (statusLabel) statusLabel.textContent = 'Processing...';
 
-    // Capture after 2 seconds
     setTimeout(async () => {
       try {
         if (frame) frame.classList.add('active');
@@ -220,7 +188,6 @@ document.getElementById('startFaceLoginBtn')?.addEventListener('click', async fu
 
         const response = await API.post('/face/login', formData, true);
 
-        // Stop camera
         if (faceLoginStream) {
           faceLoginStream.getTracks().forEach((t) => t.stop());
           faceLoginStream = null;
@@ -264,8 +231,7 @@ document.getElementById('startFaceLoginBtn')?.addEventListener('click', async fu
   } catch (err) {
     Toast.error('Camera access denied. Please use password login.');
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-camera me-2"></i>Start Face Login';
-    // Cleanup on error
+    btn.innerHTML = '<i class="fa-solid fa-camera me-2"></i>Sign in with Face';
     if (faceLoginStream) {
       faceLoginStream.getTracks().forEach((t) => t.stop());
       faceLoginStream = null;
@@ -274,4 +240,3 @@ document.getElementById('startFaceLoginBtn')?.addEventListener('click', async fu
 });
 </script>
 {% endblock %}
-
