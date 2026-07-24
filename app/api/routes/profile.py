@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.security import hash_password, verify_password
+from app.models.department import Department
 from app.models.user import User
 from app.models.password_history import PasswordHistory
 from datetime import datetime
@@ -19,6 +20,7 @@ router = APIRouter()
 class ProfileUpdateRequest(BaseModel):
     full_name: str | None = None
     email: str | None = None
+    department_id: int | None = None
     bio: str | None = None
 
 
@@ -39,6 +41,7 @@ def get_profile(current_user: User = Depends(get_current_user)) -> dict[str, obj
         "staff_number": current_user.staff_number,
         "bio": current_user.bio,
         "role": current_user.role.name if current_user.role else None,
+        "department_id": current_user.department_id,
         "department": current_user.department.name if current_user.department else None,
         "face_registered": current_user.face_registered == "Y",
         "profile_completed": current_user.profile_completed == "Y",
@@ -62,6 +65,14 @@ def update_profile(
         current_user.email = payload.email
     if payload.bio is not None:
         current_user.bio = payload.bio
+    if payload.department_id is not None:
+        department = db.query(Department).filter(
+            Department.department_id == payload.department_id,
+            Department.is_active == "Y",
+        ).first()
+        if not department:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid department")
+        current_user.department_id = department.department_id
 
     current_user.profile_completed = "Y"
     current_user.updated_at = datetime.utcnow()

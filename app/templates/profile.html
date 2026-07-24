@@ -110,6 +110,13 @@
                     <input type="text" class="form-control" id="editUsername" disabled />
                     <small class="form-text">Username cannot be changed.</small>
                   </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Department</label>
+                    <select class="form-select" id="editDepartment">
+                      <option value="">Select department</option>
+                    </select>
+                    <div class="invalid-feedback"></div>
+                  </div>
                   <div class="col-12">
                     <label class="form-label">Bio / About</label>
                     <textarea class="form-control" id="editBio" rows="3" placeholder="Tell us about yourself..."></textarea>
@@ -168,6 +175,23 @@ function toggleSidebar() {
   document.querySelector('.sidebar-overlay')?.classList.toggle('show');
 }
 
+async function loadDepartments(selectedDepartmentId = null) {
+  const select = document.getElementById('editDepartment');
+  if (!select) return;
+
+  try {
+    const departments = await API.get('/departments');
+    const activeDepartments = (departments || []).filter((dept) => dept.is_active === true || dept.is_active === 'Y');
+    select.innerHTML = '<option value="">Select department</option>' + activeDepartments.map((dept) => `
+      <option value="${dept.department_id}">${dept.name}</option>
+    `).join('');
+    if (selectedDepartmentId) select.value = String(selectedDepartmentId);
+  } catch (err) {
+    select.innerHTML = '<option value="">Departments unavailable</option>';
+    Toast.error('Failed to load departments: ' + err.message);
+  }
+}
+
 async function loadProfile() {
   try {
     const profile = await API.get('/profile');
@@ -194,6 +218,7 @@ async function loadProfile() {
     document.getElementById('editStaffNumber').value = profile.staff_number || '';
     document.getElementById('editUsername').value = profile.username || '';
     document.getElementById('editBio').value = profile.bio || '';
+    await loadDepartments(profile.department_id);
 
   } catch (err) {
     Toast.error('Failed to load profile: ' + err.message);
@@ -213,6 +238,7 @@ document.getElementById('profileForm')?.addEventListener('submit', async functio
     const payload = {
       full_name: document.getElementById('editFullName').value.trim(),
       email: document.getElementById('editEmail').value.trim(),
+      department_id: document.getElementById('editDepartment').value ? Number(document.getElementById('editDepartment').value) : null,
       bio: document.getElementById('editBio').value.trim() || null,
     };
     await API.put('/profile', payload);
@@ -255,4 +281,3 @@ document.getElementById('passwordForm')?.addEventListener('submit', async functi
 document.addEventListener('DOMContentLoaded', loadProfile);
 </script>
 {% endblock %}
-

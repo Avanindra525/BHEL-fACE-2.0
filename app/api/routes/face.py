@@ -46,6 +46,30 @@ def _decode_upload_to_array(file: UploadFile) -> np.ndarray | None:
     return image
 
 
+def _json_scalar(value: Any) -> Any:
+    """Convert NumPy scalar values to JSON-serializable Python primitives."""
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+
+def _face_size(face: dict[str, Any] | None) -> int | None:
+    """Return face_size as a plain int for API responses."""
+    if not face:
+        return None
+    size = _json_scalar(face.get("face_size"))
+    return int(size) if size is not None else None
+
+
+def _quality_checks(checks: dict[str, Any]) -> dict[str, bool]:
+    """Return quality check pass flags as plain bools."""
+    return {
+        key: bool(_json_scalar(value.get("passed")))
+        for key, value in checks.items()
+        if isinstance(value, dict) and "passed" in value
+    }
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_face(
     file: UploadFile,
@@ -126,10 +150,10 @@ async def register_face(
     return {
         "message": f"Face sample registered for pose: {pose}",
         "user": current_user.username,
-        "quality_score": result["quality_score"],
-        "face_size": result.get("face", {}).get("face_size"),
+        "quality_score": float(_json_scalar(result["quality_score"])),
+        "face_size": _face_size(result.get("face")),
         "image_path": result["image_path"],
-        "checks": {k: v.get("passed") for k, v in result.get("checks", {}).items()},
+        "checks": _quality_checks(result.get("checks", {})),
     }
 
 

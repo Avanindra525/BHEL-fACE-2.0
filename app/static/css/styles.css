@@ -798,6 +798,7 @@ a {
 /* Right: Login Form Panel */
 .login-form-panel {
   flex: 1;
+  min-width: 0;
   padding: 2.5rem 3rem;
   display: flex;
   flex-direction: column;
@@ -849,6 +850,26 @@ a {
 .login-form-panel .input-group .form-control {
   border-left: none;
   border-radius: 0 10px 10px 0;
+}
+
+.login-form-panel .input-group .form-control:not(:last-child) {
+  border-radius: 0;
+}
+
+.login-form-panel #togglePassword {
+  width: 48px;
+  padding: 0;
+  border: 1.5px solid #e5e7eb;
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  color: #6b7280;
+  background: #f9fafb;
+  box-shadow: none;
+}
+
+.login-form-panel .input-group:focus-within #togglePassword {
+  border-color: #2563EB;
+  background: #ffffff;
 }
 
 .login-form-panel .input-group:focus-within .input-group-text {

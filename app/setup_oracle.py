@@ -42,6 +42,15 @@ TABLE_SEQUENCE_MAP = [
     ("password_history", "password_history_id", "password_history_seq"),
 ]
 
+DEFAULT_DEPARTMENTS = [
+    ("HR", "HR"),
+    ("IT", "IT"),
+    ("Finance", "FIN"),
+    ("Production", "PROD"),
+    ("Administration", "ADMIN"),
+    ("Security", "SEC"),
+]
+
 
 # ─── Connection Validation ────────────────────────────────────────────────
 
@@ -358,6 +367,31 @@ def create_schema() -> None:
         logger.warning("sequence_sync_incomplete", extra={"failed_count": len(failed), "details": failed})
     else:
         logger.info("all_sequences_synchronized")
+
+    # Step 3b: Ensure standard BHEL departments exist for employee profiles
+    try:
+        with engine.begin() as connection:
+            for name, code in DEFAULT_DEPARTMENTS:
+                exists = connection.execute(
+                    text("SELECT COUNT(*) FROM departments WHERE name = :name"),
+                    {"name": name},
+                ).scalar()
+                if not exists:
+                    connection.execute(
+                        text(
+                            "INSERT INTO departments "
+                            "(department_id, name, code, description, is_active, created_at, updated_at) "
+                            "VALUES (departments_seq.nextval, :name, :code, :description, 'Y', SYSDATE, SYSDATE)"
+                        ),
+                        {
+                            "name": name,
+                            "code": code,
+                            "description": f"{name} department",
+                        },
+                    )
+        logger.info("default_departments_ready")
+    except Exception as exc:
+        logger.warning("default_department_seed_failed", extra={"error": str(exc)})
 
     # Step 4: Log schema diagnostics
     diag = validate_schema()
