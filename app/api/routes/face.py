@@ -14,7 +14,6 @@ from typing import Any
 import cv2
 import numpy as np
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, status
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -93,13 +92,6 @@ async def register_face(
         embedding_blob=result["embedding_bytes"],
         quality_score=int(result["quality_score"] * 100),
     )
-
-    # Handle Oracle sequence for primary key
-    try:
-        next_id = db.execute(text("SELECT face_samples_seq.NEXTVAL FROM dual")).scalar_one()
-        face_sample.face_sample_id = int(next_id)
-    except Exception:
-        pass  # Let auto-increment handle it
 
     db.add(face_sample)
 
@@ -186,11 +178,6 @@ async def register_multi_pose(
                 embedding_blob=result["embedding_bytes"],
                 quality_score=int(result["quality_score"] * 100),
             )
-            try:
-                next_id = db.execute(text("SELECT face_samples_seq.NEXTVAL FROM dual")).scalar_one()
-                face_sample.face_sample_id = int(next_id)
-            except Exception:
-                pass
             db.add(face_sample)
             results.append({
                 "pose": pose_name,

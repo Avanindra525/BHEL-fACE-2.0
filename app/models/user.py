@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Sequence, String, Text
 from sqlalchemy.orm import Mapped, relationship
 
 from app.core.database import Base
@@ -25,7 +25,12 @@ class User(Base):
 
     __tablename__ = "users"
 
-    user_id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = Column(
+        Integer,
+        Sequence("users_seq"),
+        primary_key=True,
+        nullable=False,
+    )
     username: Mapped[str] = Column(String(100), nullable=False, unique=True)
     email: Mapped[str] = Column(String(255), nullable=False, unique=True)
     staff_number: Mapped[str | None] = Column(String(50), nullable=True, unique=True)

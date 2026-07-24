@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BLOB, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import BLOB, Column, DateTime, ForeignKey, Integer, Sequence, String, Text
 from sqlalchemy.orm import Mapped, relationship
 
 from app.core.database import Base
@@ -19,7 +19,12 @@ class FaceSample(Base):
 
     __tablename__ = "face_samples"
 
-    face_sample_id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
+    face_sample_id: Mapped[int] = Column(
+        Integer,
+        Sequence("face_samples_seq"),
+        primary_key=True,
+        nullable=False,
+    )
     user_id: Mapped[int] = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     pose: Mapped[str] = Column(String(50), nullable=False)
     image_path: Mapped[str] = Column(String(500), nullable=False)

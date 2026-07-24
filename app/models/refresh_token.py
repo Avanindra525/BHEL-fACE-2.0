@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Sequence, String
 from sqlalchemy.orm import Mapped, relationship
 
 from app.core.database import Base
@@ -19,7 +19,12 @@ class RefreshToken(Base):
 
     __tablename__ = "refresh_tokens"
 
-    refresh_token_id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
+    refresh_token_id: Mapped[int] = Column(
+        Integer,
+        Sequence("refresh_tokens_seq"),
+        primary_key=True,
+        nullable=False,
+    )
     user_id: Mapped[int] = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     token: Mapped[str] = Column(String(500), nullable=False, unique=True)
     expires_at: Mapped[datetime] = Column(DateTime, nullable=False)

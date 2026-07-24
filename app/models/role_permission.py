@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import Column, ForeignKey, Integer, Sequence
 from sqlalchemy.orm import Mapped, relationship
 
 from app.core.database import Base
@@ -19,7 +19,12 @@ class RolePermission(Base):
 
     __tablename__ = "role_permissions"
 
-    role_permission_id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
+    role_permission_id: Mapped[int] = Column(
+        Integer,
+        Sequence("role_permissions_seq"),
+        primary_key=True,
+        nullable=False,
+    )
     role_id: Mapped[int] = Column(Integer, ForeignKey("roles.role_id"), nullable=False)
     permission_id: Mapped[int] = Column(Integer, ForeignKey("permissions.permission_id"), nullable=False)
 
